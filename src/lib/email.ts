@@ -148,12 +148,18 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
 
   try {
     const resendClient = getResend();
-    
+
     if (!resendClient) {
-      console.log('Resend not configured, skipping email');
-      return { success: true, data: null };
+      console.log('[EMAIL] Resend not configured - RESEND_API_KEY is missing');
+      console.log('[EMAIL] To enable email sending:');
+      console.log('[EMAIL] 1. Create account at https://resend.com');
+      console.log('[EMAIL] 2. Add and verify domain nconnect.sk');
+      console.log('[EMAIL] 3. Set RESEND_API_KEY in .env.local');
+      return { success: false, error: 'Email not configured', skipped: true };
     }
-    
+
+    console.log(`[EMAIL] Sending ${type} email to ${to}`);
+
     const { data, error } = await resendClient.emails.send({
       from: FROM_EMAIL,
       to: [to],
@@ -162,13 +168,19 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
     });
 
     if (error) {
-      console.error('Email send error:', error);
+      console.error('[EMAIL] Send error:', error);
       return { success: false, error };
     }
 
+    console.log(`[EMAIL] Successfully sent to ${to}, ID: ${data?.id}`);
     return { success: true, data };
   } catch (error) {
-    console.error('Email send exception:', error);
+    console.error('[EMAIL] Exception:', error);
     return { success: false, error };
   }
+}
+
+// Helper to check if email is configured
+export function isEmailConfigured(): boolean {
+  return !!process.env.RESEND_API_KEY;
 }

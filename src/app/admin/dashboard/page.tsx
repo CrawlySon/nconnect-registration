@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  Users, Calendar, BarChart3, Settings, 
+import {
+  Users, Calendar, BarChart3, Settings,
   Loader2, AlertCircle, ChevronRight,
-  Download, Plus, LogOut
+  Download, Plus, LogOut, Play, FileSpreadsheet, Mail
 } from 'lucide-react';
 
 interface Stats {
@@ -196,13 +196,46 @@ export default function AdminDashboard() {
               <ChevronRight className="w-5 h-5 text-nconnect-muted" />
             </Link>
 
+            <Link
+              href="/admin/live-demo"
+              className="flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Play className="w-5 h-5 text-nconnect-accent" />
+                <span className="text-white">Live demo rezim</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-nconnect-muted" />
+            </Link>
+
+            <Link
+              href="/admin/email-test"
+              className="flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Mail className="w-5 h-5 text-nconnect-accent" />
+                <span className="text-white">Test emailov</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-nconnect-muted" />
+            </Link>
+
+            <button
+              onClick={() => window.location.href = '/api/admin/export/attendees'}
+              className="w-full flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="w-5 h-5 text-nconnect-accent" />
+                <span className="text-white">Export ucastnikov (CSV)</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-nconnect-muted" />
+            </button>
+
             <button
               onClick={() => window.location.href = '/api/admin/export'}
               className="w-full flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
             >
               <div className="flex items-center gap-3">
                 <Download className="w-5 h-5 text-nconnect-accent" />
-                <span className="text-white">Exportovat data (CSV)</span>
+                <span className="text-white">Export registracii (CSV)</span>
               </div>
               <ChevronRight className="w-5 h-5 text-nconnect-muted" />
             </button>
