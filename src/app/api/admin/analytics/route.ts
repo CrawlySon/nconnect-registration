@@ -3,6 +3,16 @@ import { createServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
+interface RegistrationWithSession {
+  id: string;
+  registered_at: string;
+  session: {
+    id: string;
+    title: string;
+    stage_id: string;
+  } | null;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient();
@@ -25,24 +35,25 @@ export async function GET(request: NextRequest) {
       .order('registered_count', { ascending: false });
 
     // Build registrations query with optional filters
-    let registrationsQuery = supabase
+    const { data: registrations, error: regError } = await supabase
       .from('registrations')
       .select(`
         id,
         registered_at,
-        session:sessions (
+        session:sessions!inner (
           id,
           title,
           stage_id
         )
       `);
 
-    const { data: registrations, error: regError } = await registrationsQuery;
-
     if (regError) throw regError;
 
+    // Cast to proper type
+    const typedRegistrations = (registrations || []) as unknown as RegistrationWithSession[];
+
     // Filter registrations based on stage/session
-    let filteredRegistrations = registrations || [];
+    let filteredRegistrations = typedRegistrations;
     if (stageId) {
       filteredRegistrations = filteredRegistrations.filter(
         r => r.session?.stage_id === stageId
