@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Plus, Edit2, Trash2, Users, Clock, 
@@ -9,6 +10,7 @@ import {
 import { Session, Stage } from '@/types';
 
 export default function AdminSessionsPage() {
+  const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -16,8 +18,14 @@ export default function AdminSessionsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check if authenticated
+    const isAuth = sessionStorage.getItem('admin_authenticated');
+    if (isAuth !== 'true') {
+      router.push('/admin');
+      return;
+    }
     loadData();
-  }, []);
+  }, [router]);
 
   const loadData = async () => {
     try {
@@ -81,7 +89,7 @@ export default function AdminSessionsPage() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Link 
-            href="/admin" 
+            href="/admin/dashboard" 
             className="p-2 hover:bg-nconnect-surface rounded-lg transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-nconnect-muted" />

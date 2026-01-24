@@ -1,10 +1,11 @@
 'use client';
 
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { 
   Clock, Users, CheckCircle2, AlertCircle, 
-  XCircle, Loader2, User, Building
+  XCircle, Loader2, User, Building, Send
 } from 'lucide-react';
 import { SessionWithAvailability, Stage, Attendee } from '@/types';
 
@@ -16,8 +17,9 @@ function SessionsContent() {
   const [stages, setStages] = useState<Stage[]>([]);
   const [attendee, setAttendee] = useState<Attendee | null>(null);
   const [registeredIds, setRegisteredIds] = useState<string[]>([]);
+  const [originalRegisteredIds, setOriginalRegisteredIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -25,6 +27,8 @@ function SessionsContent() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 4000);
   };
+
+  const hasChanges = JSON.stringify([...registeredIds].sort()) !== JSON.stringify([...originalRegisteredIds].sort());
 
   const loadData = useCallback(async () => {
     if (!attendeeId) return;
@@ -39,6 +43,7 @@ function SessionsContent() {
       setStages(data.stages);
       setAttendee(data.attendee);
       setRegisteredIds(data.registeredIds);
+      setOriginalRegisteredIds(data.registeredIds);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nepodarilo sa načítať dáta');
     } finally {
@@ -50,33 +55,87 @@ function SessionsContent() {
     loadData();
   }, [loadData]);
 
-  const handleToggleRegistration = async (sessionId: string, isCurrentlyRegistered: boolean) => {
-    setActionLoading(sessionId);
+  const hasConflict = (session: SessionWithAvailability): boolean => {
+    if (registeredIds.includes(session.id)) return false;
+    
+    const registeredSessions = sessions.filter(s => registeredIds.includes(s.id));
+    return registeredSessions.some(registered => {
+      if (session.date !== registered.date) return false;
+      const toMinutes = (time: string): number => {
+        const [hours, minutes] = time.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+      const start1 = toMinutes(session.start_time);
+      const end1 = toMinutes(session.end_time);
+      const start2 = toMinutes(registered.start_time);
+      const end2 = toMinutes(registered.end_time);
+      return start1 < end2 && end1 > start2;
+    });
+  };
+
+  const getDisplayedCount = (session: SessionWithAvailability): number => {
+    const wasRegistered = originalRegisteredIds.includes(session.id);
+    const isNowRegistered = registeredIds.includes(session.id);
+    
+    if (wasRegistered && !isNowRegistered) {
+      return Math.max(0, session.registered_count - 1);
+    }
+    if (!wasRegistered && isNowRegistered) {
+      return session.registered_count + 1;
+    }
+    return session.registered_count;
+  };
+
+  const handleToggleRegistration = (sessionId: string) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    const isCurrentlyRegistered = registeredIds.includes(sessionId);
+    
+    if (isCurrentlyRegistered) {
+      setRegisteredIds(prev => prev.filter(id => id !== sessionId));
+    } else {
+      const displayedCount = getDisplayedCount(session);
+      if (displayedCount >= session.capacity) {
+        showToast('Prednáška je už plne obsadená', 'error');
+        return;
+      }
+      
+      if (hasConflict(session)) {
+        showToast('Časový konflikt s inou prednáškou', 'error');
+        return;
+      }
+      
+      setRegisteredIds(prev => [...prev, sessionId]);
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
     
     try {
-      const response = await fetch('/api/registrations', {
-        method: isCurrentlyRegistered ? 'DELETE' : 'POST',
+      const response = await fetch('/api/registrations/bulk', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ attendeeId, sessionId }),
+        body: JSON.stringify({ 
+          attendeeId, 
+          sessionIds: registeredIds,
+          previousSessionIds: originalRegisteredIds
+        }),
       });
       
       const data = await response.json();
       
       if (!response.ok) throw new Error(data.error);
       
+      setOriginalRegisteredIds([...registeredIds]);
       await loadData();
       
-      const session = sessions.find(s => s.id === sessionId);
-      showToast(
-        isCurrentlyRegistered 
-          ? `Odhlásený z "${session?.title}"` 
-          : `Prihlásený na "${session?.title}"`,
-        'success'
-      );
+      showToast('Zmeny boli uložené a email bol odoslaný', 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Akcia zlyhala', 'error');
+      showToast(err instanceof Error ? err.message : 'Uloženie zlyhalo', 'error');
     } finally {
-      setActionLoading(null);
+      setIsSaving(false);
     }
   };
 
@@ -153,7 +212,7 @@ function SessionsContent() {
           Výber prednášok
         </h1>
         <p className="text-nconnect-muted">
-          Vyber si prednášky, ktoré chceš navštíviť.
+          Vyber si prednášky, ktoré chceš navštíviť. Po výbere klikni na "Potvrdiť zmeny".
         </p>
       </div>
 
@@ -173,117 +232,87 @@ function SessionsContent() {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 bg-nconnect-surface px-4 py-2 rounded-lg">
                   <Clock className="w-4 h-4 text-nconnect-accent" />
-                  <span className="font-medium text-white">
-                    {slot.start_time} - {slot.end_time}
-                  </span>
+                  <span className="font-medium text-white">{slot.start_time} - {slot.end_time}</span>
                 </div>
                 <div className="flex-1 h-px bg-nconnect-secondary/30" />
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
                 {slot.sessions.map(session => {
-                  const stage = stages.find(s => s.id === session.stage_id);
                   const isRegistered = registeredIds.includes(session.id);
-                  const isActionLoading = actionLoading === session.id;
+                  const stage = stages.find(s => s.id === session.stage_id);
+                  const displayedCount = getDisplayedCount(session);
+                  const isFull = displayedCount >= session.capacity;
+                  const sessionHasConflict = hasConflict(session);
                   
                   let cardClass = 'session-card card-hover';
                   if (isRegistered) cardClass += ' registered';
-                  else if (session.is_full) cardClass += ' full';
-                  else if (session.has_conflict) cardClass += ' conflict';
+                  else if (isFull) cardClass += ' full';
+                  else if (sessionHasConflict) cardClass += ' conflict';
 
-                  const canRegister = !session.is_full && !session.has_conflict;
+                  const canRegister = !isFull && !sessionHasConflict;
 
                   return (
                     <div key={session.id} className={cardClass}>
                       <div className="flex items-center justify-between mb-3">
-                        <span 
-                          className="stage-badge"
-                          style={{ backgroundColor: `${stage?.color}20`, color: stage?.color }}
-                        >
+                        <span className="stage-badge" style={{ backgroundColor: `${stage?.color}20`, color: stage?.color }}>
                           {stage?.name}
                         </span>
                         
                         {isRegistered && (
                           <span className="flex items-center gap-1 text-green-400 text-sm">
-                            <CheckCircle2 className="w-4 h-4" />
-                            Prihlásený
+                            <CheckCircle2 className="w-4 h-4" />Prihlásený
                           </span>
                         )}
-                        
-                        {!isRegistered && session.is_full && (
+                        {!isRegistered && isFull && (
                           <span className="flex items-center gap-1 text-red-400 text-sm">
-                            <XCircle className="w-4 h-4" />
-                            Plná kapacita
+                            <XCircle className="w-4 h-4" />Plná kapacita
                           </span>
                         )}
-                        
-                        {!isRegistered && !session.is_full && session.has_conflict && (
+                        {!isRegistered && !isFull && sessionHasConflict && (
                           <span className="flex items-center gap-1 text-yellow-400 text-sm">
-                            <AlertCircle className="w-4 h-4" />
-                            Časový konflikt
+                            <AlertCircle className="w-4 h-4" />Časový konflikt
                           </span>
                         )}
                       </div>
 
-                      <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">
-                        {session.title}
-                      </h3>
+                      <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">{session.title}</h3>
                       
                       <div className="flex items-center gap-2 text-nconnect-muted text-sm mb-3">
                         <User className="w-4 h-4" />
                         <span>{session.speaker_name}</span>
-                        {session.speaker_company && (
-                          <>
-                            <span>•</span>
-                            <span>{session.speaker_company}</span>
-                          </>
-                        )}
+                        {session.speaker_company && (<><span>•</span><span>{session.speaker_company}</span></>)}
                       </div>
 
                       {session.description && (
-                        <p className="text-nconnect-muted text-sm mb-4 line-clamp-2">
-                          {session.description}
-                        </p>
+                        <p className="text-nconnect-muted text-sm mb-4 line-clamp-2">{session.description}</p>
                       )}
 
                       <div className="mb-4">
                         <div className="flex items-center justify-between text-sm mb-1">
                           <span className="text-nconnect-muted">Kapacita</span>
-                          <span className="text-white">{session.registered_count}/{session.capacity}</span>
+                          <span className="text-white">{displayedCount}/{session.capacity}</span>
                         </div>
                         <div className="capacity-bar">
                           <div 
-                            className={`capacity-fill ${
-                              session.registered_count >= session.capacity ? 'full' 
-                              : session.registered_count >= session.capacity * 0.8 ? 'warning' : ''
-                            }`}
-                            style={{ width: `${Math.min(100, (session.registered_count / session.capacity) * 100)}%` }}
+                            className={`capacity-fill ${displayedCount >= session.capacity ? 'full' : displayedCount >= session.capacity * 0.8 ? 'warning' : ''}`}
+                            style={{ width: `${Math.min(100, (displayedCount / session.capacity) * 100)}%` }}
                           />
                         </div>
                       </div>
 
                       <button
-                        onClick={() => handleToggleRegistration(session.id, isRegistered)}
-                        disabled={isActionLoading || (!isRegistered && !canRegister)}
+                        onClick={() => handleToggleRegistration(session.id)}
+                        disabled={!isRegistered && !canRegister}
                         className={`w-full py-2 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
                           isRegistered
-                            ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30'
                             : canRegister
                               ? 'bg-nconnect-accent/10 text-nconnect-accent border border-nconnect-accent/30 hover:bg-nconnect-accent/20'
                               : 'bg-nconnect-secondary/20 text-nconnect-muted cursor-not-allowed'
                         }`}
                       >
-                        {isActionLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : isRegistered ? (
-                          'Odhlásiť sa'
-                        ) : canRegister ? (
-                          'Prihlásiť sa'
-                        ) : session.is_full ? (
-                          'Plná kapacita'
-                        ) : (
-                          'Časový konflikt'
-                        )}
+                        {isRegistered ? 'Odhlásiť sa' : canRegister ? 'Prihlásiť sa' : isFull ? 'Plná kapacita' : 'Časový konflikt'}
                       </button>
                     </div>
                   );
@@ -300,8 +329,7 @@ function SessionsContent() {
                 <h3 className="font-semibold text-white mb-3">Tvoj profil</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2 text-nconnect-muted">
-                    <User className="w-4 h-4" />
-                    <span>{attendee.name}</span>
+                    <User className="w-4 h-4" /><span>{attendee.name}</span>
                   </div>
                   <div className="flex items-center gap-2 text-nconnect-muted">
                     <span className="w-4 h-4 flex items-center justify-center">@</span>
@@ -309,8 +337,7 @@ function SessionsContent() {
                   </div>
                   {attendee.company && (
                     <div className="flex items-center gap-2 text-nconnect-muted">
-                      <Building className="w-4 h-4" />
-                      <span>{attendee.company}</span>
+                      <Building className="w-4 h-4" /><span>{attendee.company}</span>
                     </div>
                   )}
                 </div>
@@ -318,42 +345,40 @@ function SessionsContent() {
             )}
 
             <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl p-5">
-              <h3 className="font-semibold text-white mb-3">
-                Tvoje prednášky ({registeredSessions.length})
-              </h3>
+              <h3 className="font-semibold text-white mb-3">Tvoje prednášky ({registeredSessions.length})</h3>
               
               {registeredSessions.length === 0 ? (
-                <p className="text-nconnect-muted text-sm">
-                  Zatiaľ nemáš vybrané žiadne prednášky.
-                </p>
+                <p className="text-nconnect-muted text-sm">Zatiaľ nemáš vybrané žiadne prednášky.</p>
               ) : (
                 <div className="space-y-3">
-                  {registeredSessions
-                    .sort((a, b) => a.start_time.localeCompare(b.start_time))
-                    .map(session => {
-                      const stage = stages.find(s => s.id === session.stage_id);
-                      return (
-                        <div key={session.id} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
-                          <div className="flex items-center gap-2 text-xs text-green-400 mb-1">
-                            <Clock className="w-3 h-3" />
-                            <span>{session.start_time}</span>
-                            <span>•</span>
-                            <span style={{ color: stage?.color }}>{stage?.name}</span>
-                          </div>
-                          <p className="text-white text-sm font-medium line-clamp-2">{session.title}</p>
-                          <p className="text-nconnect-muted text-xs mt-1">{session.speaker_name}</p>
+                  {registeredSessions.sort((a, b) => a.start_time.localeCompare(b.start_time)).map(session => {
+                    const stage = stages.find(s => s.id === session.stage_id);
+                    return (
+                      <div key={session.id} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-xs text-green-400 mb-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{session.start_time}</span>
+                          <span>•</span>
+                          <span style={{ color: stage?.color }}>{stage?.name}</span>
                         </div>
-                      );
-                    })}
+                        <p className="text-white text-sm font-medium line-clamp-2">{session.title}</p>
+                        <p className="text-nconnect-muted text-xs mt-1">{session.speaker_name}</p>
+                      </div>
+                    );
+                  })}
                 </div>
+              )}
+
+              {hasChanges && (
+                <button onClick={handleSaveChanges} disabled={isSaving} className="btn-primary w-full mt-4 flex items-center justify-center gap-2">
+                  {isSaving ? (<><Loader2 className="w-4 h-4 animate-spin" />Ukladám...</>) : (<><Send className="w-4 h-4" />Potvrdiť zmeny</>)}
+                </button>
               )}
             </div>
 
             <div className="bg-nconnect-accent/5 border border-nconnect-accent/20 rounded-xl p-5">
               <h4 className="font-medium text-nconnect-accent mb-2">💡 Tip</h4>
-              <p className="text-nconnect-muted text-sm">
-                Po každej zmene ti príde potvrdenie na email.
-              </p>
+              <p className="text-nconnect-muted text-sm">Po výbere prednášok klikni na "Potvrdiť zmeny". Až potom ti príde súhrnný email.</p>
             </div>
           </div>
         </div>
