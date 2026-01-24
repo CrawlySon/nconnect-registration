@@ -5,6 +5,9 @@ export const metadata: Metadata = {
   title: 'nConnect26 | Registrácia',
   description: 'Registračný systém pre IT konferenciu nConnect26 v Nitre',
   keywords: ['nConnect', 'IT konferencia', 'Nitra', 'UKF', 'registrácia'],
+  icons: {
+    icon: '/favicon.ico',
+  },
   openGraph: {
     title: 'nConnect26 | Registrácia',
     description: 'Zaregistruj sa na IT konferenciu nConnect26 - 26. marca 2026 v Nitre',
@@ -26,13 +29,11 @@ export default function RootLayout({
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex items-center justify-between h-16">
                 <a href="/" className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-nconnect-accent to-cyan-400 flex items-center justify-center">
-                    <span className="text-nconnect-primary font-bold text-lg">n</span>
-                  </div>
-                  <div>
-                    <span className="font-display font-bold text-xl text-white">nConnect</span>
-                    <span className="text-nconnect-accent font-bold">26</span>
-                  </div>
+                  <img
+                    src="/logo.png"
+                    alt="nConnect26"
+                    className="h-10 w-auto"
+                  />
                 </a>
                 
                 <nav className="hidden sm:flex items-center gap-6">
@@ -62,8 +63,8 @@ export default function RootLayout({
                   <span>Fakulta prírodných vied a informatiky UKF</span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <a href="mailto:kontakt@nconnect.sk" className="text-nconnect-muted hover:text-nconnect-accent transition-colors text-sm">
-                    kontakt@nconnect.sk
+                  <a href="mailto:info@nconnect.sk" className="text-nconnect-muted hover:text-nconnect-accent transition-colors text-sm">
+                    info@nconnect.sk
                   </a>
                 </div>
               </div>

@@ -106,7 +106,7 @@ export default function HomePage() {
                 <p className="text-nconnect-muted text-sm mb-3">Hlavní partneri</p>
                 <div className="flex items-center gap-6 opacity-70">
                   <span className="text-white font-semibold">GymBeam</span>
-                  <span className="text-white font-semibold">Muziker</span>
+                  <span className="text-white font-semibold">Hra bez hraníc</span>
                   <span className="text-white font-semibold">PowerPlay Studio</span>
                 </div>
               </div>

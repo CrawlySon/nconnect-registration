@@ -200,7 +200,7 @@ export default function AdminSessionsPage() {
                             <Eye className="w-4 h-4 text-nconnect-muted" />
                           </Link>
                           <Link
-                            href={`/admin/sessions/${session.id}/edit`}
+                            href={`/admin/sessions/${session.id}`}
                             className="p-2 hover:bg-nconnect-primary rounded-lg transition-colors"
                             title="Upraviť"
                           >
