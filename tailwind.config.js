@@ -37,6 +37,19 @@ module.exports = {
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
+      backdropBlur: {
+        xs: '2px',
+      },
+      boxShadow: {
+        'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+        'glass-sm': '0 4px 16px 0 rgba(0, 0, 0, 0.25)',
+        'glow': '0 0 20px rgba(0, 212, 255, 0.3)',
+        'glow-orange': '0 0 20px rgba(255, 107, 53, 0.3)',
+      },
+      backgroundImage: {
+        'glass-gradient': 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+        'mesh-gradient': 'radial-gradient(at 40% 20%, rgba(0, 212, 255, 0.15) 0px, transparent 50%), radial-gradient(at 80% 0%, rgba(255, 107, 53, 0.1) 0px, transparent 50%), radial-gradient(at 0% 50%, rgba(0, 212, 255, 0.1) 0px, transparent 50%)',
+      },
     },
   },
   plugins: [],

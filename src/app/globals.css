@@ -165,3 +165,131 @@ h1, h2, h3, h4, h5, h6 {
 .toast.error {
   @apply border-red-500/50;
 }
+
+/* Glassmorphism styles */
+.glass-bg {
+  @apply min-h-screen;
+  background: linear-gradient(135deg, #0A1628 0%, #0D1F33 50%, #0A1628 100%);
+  background-image:
+    radial-gradient(at 40% 20%, rgba(0, 212, 255, 0.12) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(255, 107, 53, 0.08) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(0, 212, 255, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(255, 107, 53, 0.06) 0px, transparent 50%);
+}
+
+.glass-card {
+  @apply rounded-xl p-6 transition-all duration-300;
+  background: rgba(13, 31, 51, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-card:hover {
+  background: rgba(13, 31, 51, 0.8);
+  border-color: rgba(0, 212, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 212, 255, 0.15);
+}
+
+.glass-panel {
+  @apply rounded-xl p-5;
+  background: rgba(13, 31, 51, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-button {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+  background: rgba(0, 212, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  color: #00D4FF;
+}
+
+.glass-button:hover {
+  background: rgba(0, 212, 255, 0.2);
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+.glass-button:disabled {
+  @apply opacity-50 cursor-not-allowed;
+  box-shadow: none;
+}
+
+.glass-input {
+  @apply w-full rounded-lg px-4 py-3 transition-all duration-200;
+  background: rgba(13, 31, 51, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.glass-input::placeholder {
+  color: #64748B;
+}
+
+.glass-input:focus {
+  outline: none;
+  border-color: rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.1);
+}
+
+.stat-card {
+  @apply rounded-xl p-6 transition-all duration-300;
+  background: linear-gradient(135deg, rgba(13, 31, 51, 0.8) 0%, rgba(30, 58, 95, 0.4) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 212, 255, 0.15);
+}
+
+.stat-card .icon-wrapper {
+  @apply w-12 h-12 rounded-lg flex items-center justify-center;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(0, 212, 255, 0.1) 100%);
+}
+
+.stat-card .icon-wrapper.purple {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(168, 85, 247, 0.1) 100%);
+}
+
+.stat-card .icon-wrapper.green {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%);
+}
+
+.stat-card .icon-wrapper.orange {
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.2) 0%, rgba(255, 107, 53, 0.1) 100%);
+}
+
+/* Table glassmorphism */
+.glass-table {
+  @apply w-full rounded-xl overflow-hidden;
+  background: rgba(13, 31, 51, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-table thead {
+  background: rgba(10, 22, 40, 0.8);
+}
+
+.glass-table th {
+  @apply px-4 py-3 text-left text-sm font-medium text-nconnect-muted;
+}
+
+.glass-table td {
+  @apply px-4 py-3 border-t border-white/5;
+}
+
+.glass-table tbody tr:hover {
+  background: rgba(0, 212, 255, 0.05);
+}

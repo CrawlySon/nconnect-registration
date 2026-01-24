@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  Plus, Edit2, Trash2, Users, Clock, 
-  Loader2, AlertCircle, ArrowLeft, Eye
+import {
+  Plus, Edit2, Trash2, Users, Clock,
+  Loader2, AlertCircle, ArrowLeft, Eye, Table
 } from 'lucide-react';
 import { Session, Stage } from '@/types';
+import { formatTime } from '@/lib/utils';
 
 export default function AdminSessionsPage() {
   const router = useRouter();
@@ -104,13 +105,22 @@ export default function AdminSessionsPage() {
           </div>
         </div>
         
-        <Link 
-          href="/admin/sessions/new" 
-          className="btn-primary flex items-center gap-2"
-        >
-          <Plus className="w-4 h-4" />
-          Nová prednáška
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/sessions/bulk-edit"
+            className="btn-secondary flex items-center gap-2"
+          >
+            <Table className="w-4 h-4" />
+            Hromadna editacia
+          </Link>
+          <Link
+            href="/admin/sessions/new"
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Nova prednaska
+          </Link>
+        </div>
       </div>
 
       {error && (
@@ -154,7 +164,7 @@ export default function AdminSessionsPage() {
                 <div className="flex items-center gap-2 bg-nconnect-surface px-4 py-2 rounded-lg">
                   <Clock className="w-4 h-4 text-nconnect-accent" />
                   <span className="font-medium text-white">
-                    {slot.time} - {slot.endTime}
+                    {formatTime(slot.time)} - {formatTime(slot.endTime)}
                   </span>
                 </div>
                 <div className="flex-1 h-px bg-nconnect-secondary/30" />

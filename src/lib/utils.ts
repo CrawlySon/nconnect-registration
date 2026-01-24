@@ -97,8 +97,17 @@ export function sortSessionsByTime(sessions: Session[]): Session[] {
 }
 
 /**
+ * Formats time to HH:MM format (removes seconds if present)
+ */
+export function formatTime(time: string): string {
+  // Handle HH:MM:SS format by taking only HH:MM
+  const parts = time.split(':');
+  return `${parts[0]}:${parts[1]}`;
+}
+
+/**
  * Formats time range for display
  */
 export function formatTimeRange(startTime: string, endTime: string): string {
-  return `${startTime} - ${endTime}`;
+  return `${formatTime(startTime)} - ${formatTime(endTime)}`;
 }

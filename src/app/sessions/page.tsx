@@ -8,6 +8,7 @@ import {
   XCircle, Loader2, User, Building, Send
 } from 'lucide-react';
 import { SessionWithAvailability, Stage, Attendee } from '@/types';
+import { formatTime } from '@/lib/utils';
 
 function SessionsContent() {
   const searchParams = useSearchParams();
@@ -232,13 +233,21 @@ function SessionsContent() {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2 bg-nconnect-surface px-4 py-2 rounded-lg">
                   <Clock className="w-4 h-4 text-nconnect-accent" />
-                  <span className="font-medium text-white">{slot.start_time} - {slot.end_time}</span>
+                  <span className="font-medium text-white">{formatTime(slot.start_time)} - {formatTime(slot.end_time)}</span>
                 </div>
                 <div className="flex-1 h-px bg-nconnect-secondary/30" />
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
-                {slot.sessions.map(session => {
+                {slot.sessions
+                  .sort((a, b) => {
+                    // Sort by stage name: AI & Data Stage first (left), Soft Dev Stage second (right)
+                    const stageA = stages.find(s => s.id === a.stage_id)?.name || '';
+                    const stageB = stages.find(s => s.id === b.stage_id)?.name || '';
+                    // AI & Data should come before Soft Dev alphabetically
+                    return stageA.localeCompare(stageB);
+                  })
+                  .map(session => {
                   const isRegistered = registeredIds.includes(session.id);
                   const stage = stages.find(s => s.id === session.stage_id);
                   const displayedCount = getDisplayedCount(session);
@@ -357,7 +366,7 @@ function SessionsContent() {
                       <div key={session.id} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
                         <div className="flex items-center gap-2 text-xs text-green-400 mb-1">
                           <Clock className="w-3 h-3" />
-                          <span>{session.start_time}</span>
+                          <span>{formatTime(session.start_time)}</span>
                           <span>•</span>
                           <span style={{ color: stage?.color }}>{stage?.name}</span>
                         </div>
