@@ -33,19 +33,29 @@ function SessionsContent() {
 
   const loadData = useCallback(async () => {
     if (!attendeeId) return;
-    
+
     try {
+      console.log('[SESSIONS PAGE] Loading data for attendee:', attendeeId);
       const response = await fetch(`/api/sessions?attendee=${attendeeId}`);
       const data = await response.json();
-      
+
+      console.log('[SESSIONS PAGE] API response:', {
+        success: data.success,
+        attendee: data.attendee?.email,
+        sessionsCount: data.sessions?.length,
+        registeredIds: data.registeredIds,
+        registeredCount: data.registeredIds?.length
+      });
+
       if (!response.ok) throw new Error(data.error);
-      
+
       setSessions(data.sessions);
       setStages(data.stages);
       setAttendee(data.attendee);
-      setRegisteredIds(data.registeredIds);
-      setOriginalRegisteredIds(data.registeredIds);
+      setRegisteredIds(data.registeredIds || []);
+      setOriginalRegisteredIds(data.registeredIds || []);
     } catch (err) {
+      console.error('[SESSIONS PAGE] Error:', err);
       setError(err instanceof Error ? err.message : 'Nepodarilo sa načítať dáta');
     } finally {
       setIsLoading(false);
