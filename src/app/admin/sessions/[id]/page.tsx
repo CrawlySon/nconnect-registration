@@ -9,7 +9,6 @@ import {
   CheckCircle2, XCircle
 } from 'lucide-react';
 import { Session, Stage, Attendee } from '@/types';
-import { formatTime } from '@/lib/utils';
 
 interface Registration {
   id: string;
@@ -346,7 +345,7 @@ export default function SessionDetailPage() {
                   </span>
                   <div className="flex items-center gap-2 text-nconnect-muted text-sm">
                     <Clock className="w-4 h-4" />
-                    {formatTime(session.start_time)} - {formatTime(session.end_time)}
+                    {session.start_time} - {session.end_time}
                   </div>
                 </div>
                 
