@@ -1,26 +1,52 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { TIME_SLOTS } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
-// Get all sessions for admin
+// Get all sessions for admin with registration counts
 export async function GET() {
   try {
     const supabase = createServerClient();
 
+    // Get all sessions with stage info
     const { data: sessions, error: sessionsError } = await supabase
       .from('sessions')
       .select('*, stage:stages(*)')
-      .order('start_time');
+      .order('slot_index')
+      .order('stage_id');
 
     if (sessionsError) {
       throw sessionsError;
     }
 
+    // Get registration counts for each session
+    const { data: registrationCounts, error: countError } = await supabase
+      .from('attendee_sessions')
+      .select('session_id')
+      .eq('is_registered', true);
+
+    if (countError) {
+      throw countError;
+    }
+
+    // Count registrations per session
+    const countMap: Record<number, number> = {};
+    registrationCounts?.forEach(r => {
+      countMap[r.session_id] = (countMap[r.session_id] || 0) + 1;
+    });
+
+    // Add registration counts to sessions
+    const sessionsWithCounts = sessions?.map(session => ({
+      ...session,
+      registered_count: countMap[session.id] || 0,
+    })) || [];
+
+    // Get stages
     const { data: stages, error: stagesError } = await supabase
       .from('stages')
       .select('*')
-      .order('name');
+      .order('id');
 
     if (stagesError) {
       throw stagesError;
@@ -28,8 +54,9 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      sessions: sessions || [],
+      sessions: sessionsWithCounts,
       stages: stages || [],
+      timeSlots: TIME_SLOTS,
     });
   } catch (error) {
     console.error('Admin sessions GET error:', error);
@@ -40,59 +67,5 @@ export async function GET() {
   }
 }
 
-// Create new session
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { 
-      title, speaker_name, speaker_company, description,
-      stage_id, date, start_time, end_time, capacity 
-    } = body;
-
-    if (!title || !speaker_name || !stage_id || !date || !start_time || !end_time || !capacity) {
-      return NextResponse.json(
-        { error: 'Chýbajú povinné polia' },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createServerClient();
-
-    const { data: session, error } = await supabase
-      .from('sessions')
-      .insert({
-        title,
-        speaker_name,
-        speaker_company: speaker_company || null,
-        description: description || null,
-        stage_id,
-        date,
-        start_time,
-        end_time,
-        capacity: parseInt(capacity),
-        registered_count: 0,
-        is_active: true,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Session create error:', error);
-      return NextResponse.json(
-        { error: 'Nepodarilo sa vytvoriť prednášku' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      session,
-    });
-  } catch (error) {
-    console.error('Admin sessions POST error:', error);
-    return NextResponse.json(
-      { error: 'Interná chyba servera' },
-      { status: 500 }
-    );
-  }
-}
+// No POST - sessions are fixed at 14
+// No DELETE - sessions cannot be removed

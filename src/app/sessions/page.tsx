@@ -3,23 +3,22 @@
 import { Suspense } from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { 
-  Clock, Users, CheckCircle2, AlertCircle, 
-  XCircle, Loader2, User, Building, Send
+import {
+  Clock, Users, CheckCircle2, AlertCircle,
+  XCircle, Loader2, User, Building
 } from 'lucide-react';
-import { SessionWithAvailability, Stage, Attendee } from '@/types';
+import { SessionWithStatus, Stage, Attendee, TimeSlot } from '@/types';
 
 function SessionsContent() {
   const searchParams = useSearchParams();
   const attendeeId = searchParams.get('attendee');
-  
-  const [sessions, setSessions] = useState<SessionWithAvailability[]>([]);
+
+  const [sessions, setSessions] = useState<SessionWithStatus[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [attendee, setAttendee] = useState<Attendee | null>(null);
-  const [registeredIds, setRegisteredIds] = useState<string[]>([]);
-  const [originalRegisteredIds, setOriginalRegisteredIds] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [savingSessionId, setSavingSessionId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -28,22 +27,19 @@ function SessionsContent() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const hasChanges = JSON.stringify([...registeredIds].sort()) !== JSON.stringify([...originalRegisteredIds].sort());
-
   const loadData = useCallback(async () => {
     if (!attendeeId) return;
-    
+
     try {
       const response = await fetch(`/api/sessions?attendee=${attendeeId}`);
       const data = await response.json();
-      
+
       if (!response.ok) throw new Error(data.error);
-      
+
       setSessions(data.sessions);
       setStages(data.stages);
+      setTimeSlots(data.timeSlots);
       setAttendee(data.attendee);
-      setRegisteredIds(data.registeredIds);
-      setOriginalRegisteredIds(data.registeredIds);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nepodarilo sa načítať dáta');
     } finally {
@@ -55,87 +51,30 @@ function SessionsContent() {
     loadData();
   }, [loadData]);
 
-  const hasConflict = (session: SessionWithAvailability): boolean => {
-    if (registeredIds.includes(session.id)) return false;
-    
-    const registeredSessions = sessions.filter(s => registeredIds.includes(s.id));
-    return registeredSessions.some(registered => {
-      if (session.date !== registered.date) return false;
-      const toMinutes = (time: string): number => {
-        const [hours, minutes] = time.split(':').map(Number);
-        return hours * 60 + minutes;
-      };
-      const start1 = toMinutes(session.start_time);
-      const end1 = toMinutes(session.end_time);
-      const start2 = toMinutes(registered.start_time);
-      const end2 = toMinutes(registered.end_time);
-      return start1 < end2 && end1 > start2;
-    });
-  };
+  const handleToggleRegistration = async (sessionId: number, currentlyRegistered: boolean) => {
+    setSavingSessionId(sessionId);
 
-  const getDisplayedCount = (session: SessionWithAvailability): number => {
-    const wasRegistered = originalRegisteredIds.includes(session.id);
-    const isNowRegistered = registeredIds.includes(session.id);
-    
-    if (wasRegistered && !isNowRegistered) {
-      return Math.max(0, session.registered_count - 1);
-    }
-    if (!wasRegistered && isNowRegistered) {
-      return session.registered_count + 1;
-    }
-    return session.registered_count;
-  };
-
-  const handleToggleRegistration = (sessionId: string) => {
-    const session = sessions.find(s => s.id === sessionId);
-    if (!session) return;
-
-    const isCurrentlyRegistered = registeredIds.includes(sessionId);
-    
-    if (isCurrentlyRegistered) {
-      setRegisteredIds(prev => prev.filter(id => id !== sessionId));
-    } else {
-      const displayedCount = getDisplayedCount(session);
-      if (displayedCount >= session.capacity) {
-        showToast('Prednáška je už plne obsadená', 'error');
-        return;
-      }
-      
-      if (hasConflict(session)) {
-        showToast('Časový konflikt s inou prednáškou', 'error');
-        return;
-      }
-      
-      setRegisteredIds(prev => [...prev, sessionId]);
-    }
-  };
-
-  const handleSaveChanges = async () => {
-    setIsSaving(true);
-    
     try {
-      const response = await fetch('/api/registrations/bulk', {
+      const response = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          attendeeId, 
-          sessionIds: registeredIds,
-          previousSessionIds: originalRegisteredIds
+        body: JSON.stringify({
+          attendeeId,
+          sessionId,
+          register: !currentlyRegistered,
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) throw new Error(data.error);
-      
-      setOriginalRegisteredIds([...registeredIds]);
-      await loadData();
-      
-      showToast('Zmeny boli uložené a email bol odoslaný', 'success');
+
+      showToast(data.message, 'success');
+      await loadData(); // Reload to get updated counts and conflict states
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Uloženie zlyhalo', 'error');
+      showToast(err instanceof Error ? err.message : 'Operácia zlyhala', 'error');
     } finally {
-      setIsSaving(false);
+      setSavingSessionId(null);
     }
   };
 
@@ -177,20 +116,19 @@ function SessionsContent() {
     );
   }
 
-  const sessionsByTime = sessions.reduce((acc, session) => {
-    const key = `${session.date}-${session.start_time}`;
-    if (!acc[key]) {
-      acc[key] = { date: session.date, start_time: session.start_time, end_time: session.end_time, sessions: [] };
+  // Group sessions by slot_index
+  const sessionsBySlot: Record<number, SessionWithStatus[]> = {};
+  sessions.forEach(session => {
+    if (!sessionsBySlot[session.slot_index]) {
+      sessionsBySlot[session.slot_index] = [];
     }
-    acc[key].sessions.push(session);
-    return acc;
-  }, {} as Record<string, { date: string; start_time: string; end_time: string; sessions: SessionWithAvailability[] }>);
+    sessionsBySlot[session.slot_index].push(session);
+  });
 
-  const timeSlots = Object.values(sessionsByTime).sort((a, b) => 
-    a.start_time.localeCompare(b.start_time)
-  );
+  // Sort stages for consistent column order
+  const sortedStages = [...stages].sort((a, b) => a.id.localeCompare(b.id));
 
-  const registeredSessions = sessions.filter(s => registeredIds.includes(s.id));
+  const registeredSessions = sessions.filter(s => s.is_registered);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -212,116 +150,151 @@ function SessionsContent() {
           Výber prednášok
         </h1>
         <p className="text-nconnect-muted">
-          Vyber si prednášky, ktoré chceš navštíviť. Po výbere klikni na "Potvrdiť zmeny".
+          Vyber si jednu prednášku z každého časového bloku. Zmeny sa ukladajú okamžite.
         </p>
       </div>
 
       <div className="grid lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-3 space-y-8">
-          <div className="flex flex-wrap gap-4 mb-6">
-            {stages.map(stage => (
+        <div className="lg:col-span-3 space-y-6">
+          {/* Stage headers */}
+          <div className="grid grid-cols-[120px_1fr_1fr] gap-4 mb-2">
+            <div></div>
+            {sortedStages.map(stage => (
               <div key={stage.id} className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
-                <span className="text-sm text-nconnect-muted">{stage.name}</span>
+                <span className="text-sm font-medium text-white">{stage.name}</span>
               </div>
             ))}
           </div>
 
-          {timeSlots.map((slot) => (
-            <div key={`${slot.date}-${slot.start_time}`} className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 bg-nconnect-surface px-4 py-2 rounded-lg">
-                  <Clock className="w-4 h-4 text-nconnect-accent" />
-                  <span className="font-medium text-white">{slot.start_time} - {slot.end_time}</span>
+          {/* Time slots with sessions */}
+          {timeSlots.map((slot) => {
+            const slotSessions = sessionsBySlot[slot.index] || [];
+            // Sort by stage_id for consistent column order
+            slotSessions.sort((a, b) => a.stage_id.localeCompare(b.stage_id));
+
+            return (
+              <div key={slot.index} className="grid grid-cols-[120px_1fr_1fr] gap-4">
+                {/* Time label */}
+                <div className="flex items-start pt-4">
+                  <div className="flex items-center gap-2 bg-nconnect-surface px-3 py-2 rounded-lg">
+                    <Clock className="w-4 h-4 text-nconnect-accent" />
+                    <div className="text-sm">
+                      <div className="font-medium text-white">{slot.start}</div>
+                      <div className="text-nconnect-muted">{slot.end}</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 h-px bg-nconnect-secondary/30" />
-              </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                {slot.sessions.map(session => {
-                  const isRegistered = registeredIds.includes(session.id);
-                  const stage = stages.find(s => s.id === session.stage_id);
-                  const displayedCount = getDisplayedCount(session);
-                  const isFull = displayedCount >= session.capacity;
-                  const sessionHasConflict = hasConflict(session);
-                  
-                  let cardClass = 'session-card card-hover';
-                  if (isRegistered) cardClass += ' registered';
-                  else if (isFull) cardClass += ' full';
-                  else if (sessionHasConflict) cardClass += ' conflict';
+                {/* Sessions for each stage */}
+                {sortedStages.map(stage => {
+                  const session = slotSessions.find(s => s.stage_id === stage.id);
+                  if (!session) return <div key={stage.id}></div>;
 
-                  const canRegister = !isFull && !sessionHasConflict;
+                  const isSaving = savingSessionId === session.id;
+                  const canRegister = !session.is_full && !session.has_conflict;
+
+                  let cardClass = 'session-card';
+                  if (session.is_registered) cardClass += ' registered';
+                  else if (session.is_full) cardClass += ' full';
+                  else if (session.has_conflict) cardClass += ' conflict';
 
                   return (
                     <div key={session.id} className={cardClass}>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="stage-badge" style={{ backgroundColor: `${stage?.color}20`, color: stage?.color }}>
-                          {stage?.name}
+                      <div className="flex items-center justify-between mb-2">
+                        <span
+                          className="stage-badge text-xs"
+                          style={{ backgroundColor: `${stage.color}20`, color: stage.color }}
+                        >
+                          {stage.name}
                         </span>
-                        
-                        {isRegistered && (
-                          <span className="flex items-center gap-1 text-green-400 text-sm">
-                            <CheckCircle2 className="w-4 h-4" />Prihlásený
+
+                        {session.is_registered && (
+                          <span className="flex items-center gap-1 text-green-400 text-xs">
+                            <CheckCircle2 className="w-3 h-3" />Prihlásený
                           </span>
                         )}
-                        {!isRegistered && isFull && (
-                          <span className="flex items-center gap-1 text-red-400 text-sm">
-                            <XCircle className="w-4 h-4" />Plná kapacita
+                        {!session.is_registered && session.is_full && (
+                          <span className="flex items-center gap-1 text-red-400 text-xs">
+                            <XCircle className="w-3 h-3" />Plné
                           </span>
                         )}
-                        {!isRegistered && !isFull && sessionHasConflict && (
-                          <span className="flex items-center gap-1 text-yellow-400 text-sm">
-                            <AlertCircle className="w-4 h-4" />Časový konflikt
+                        {!session.is_registered && !session.is_full && session.has_conflict && (
+                          <span className="flex items-center gap-1 text-yellow-400 text-xs">
+                            <AlertCircle className="w-3 h-3" />Konflikt
                           </span>
                         )}
                       </div>
 
-                      <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">{session.title}</h3>
-                      
-                      <div className="flex items-center gap-2 text-nconnect-muted text-sm mb-3">
-                        <User className="w-4 h-4" />
+                      <h3 className="text-base font-semibold text-white mb-1 line-clamp-2">
+                        {session.title}
+                      </h3>
+
+                      <div className="flex items-center gap-1 text-nconnect-muted text-sm mb-2">
+                        <User className="w-3 h-3" />
                         <span>{session.speaker_name}</span>
-                        {session.speaker_company && (<><span>•</span><span>{session.speaker_company}</span></>)}
+                        {session.speaker_company && (
+                          <>
+                            <span>•</span>
+                            <span>{session.speaker_company}</span>
+                          </>
+                        )}
                       </div>
 
                       {session.description && (
-                        <p className="text-nconnect-muted text-sm mb-4 line-clamp-2">{session.description}</p>
+                        <p className="text-nconnect-muted text-xs mb-3 line-clamp-2">
+                          {session.description}
+                        </p>
                       )}
 
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between text-sm mb-1">
-                          <span className="text-nconnect-muted">Kapacita</span>
-                          <span className="text-white">{displayedCount}/{session.capacity}</span>
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-nconnect-muted flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            Kapacita
+                          </span>
+                          <span className="text-white">{session.registered_count}/{session.capacity}</span>
                         </div>
                         <div className="capacity-bar">
-                          <div 
-                            className={`capacity-fill ${displayedCount >= session.capacity ? 'full' : displayedCount >= session.capacity * 0.8 ? 'warning' : ''}`}
-                            style={{ width: `${Math.min(100, (displayedCount / session.capacity) * 100)}%` }}
+                          <div
+                            className={`capacity-fill ${session.is_full ? 'full' : session.registered_count >= session.capacity * 0.8 ? 'warning' : ''}`}
+                            style={{ width: `${Math.min(100, (session.registered_count / session.capacity) * 100)}%` }}
                           />
                         </div>
                       </div>
 
                       <button
-                        onClick={() => handleToggleRegistration(session.id)}
-                        disabled={!isRegistered && !canRegister}
-                        className={`w-full py-2 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
-                          isRegistered
+                        onClick={() => handleToggleRegistration(session.id, session.is_registered)}
+                        disabled={(!session.is_registered && !canRegister) || isSaving}
+                        className={`w-full py-2 px-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${
+                          session.is_registered
                             ? 'bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30'
                             : canRegister
                               ? 'bg-nconnect-accent/10 text-nconnect-accent border border-nconnect-accent/30 hover:bg-nconnect-accent/20'
                               : 'bg-nconnect-secondary/20 text-nconnect-muted cursor-not-allowed'
                         }`}
                       >
-                        {isRegistered ? 'Odhlásiť sa' : canRegister ? 'Prihlásiť sa' : isFull ? 'Plná kapacita' : 'Časový konflikt'}
+                        {isSaving ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : session.is_registered ? (
+                          'Odhlásiť sa'
+                        ) : canRegister ? (
+                          'Prihlásiť sa'
+                        ) : session.is_full ? (
+                          'Plná kapacita'
+                        ) : (
+                          'Časový konflikt'
+                        )}
                       </button>
                     </div>
                   );
                 })}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
+        {/* Sidebar */}
         <div className="lg:col-span-1">
           <div className="sticky top-24 space-y-6">
             {attendee && (
@@ -345,40 +318,42 @@ function SessionsContent() {
             )}
 
             <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl p-5">
-              <h3 className="font-semibold text-white mb-3">Tvoje prednášky ({registeredSessions.length})</h3>
-              
+              <h3 className="font-semibold text-white mb-3">
+                Tvoje prednášky ({registeredSessions.length}/7)
+              </h3>
+
               {registeredSessions.length === 0 ? (
                 <p className="text-nconnect-muted text-sm">Zatiaľ nemáš vybrané žiadne prednášky.</p>
               ) : (
                 <div className="space-y-3">
-                  {registeredSessions.sort((a, b) => a.start_time.localeCompare(b.start_time)).map(session => {
-                    const stage = stages.find(s => s.id === session.stage_id);
-                    return (
-                      <div key={session.id} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2 text-xs text-green-400 mb-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{session.start_time}</span>
-                          <span>•</span>
-                          <span style={{ color: stage?.color }}>{stage?.name}</span>
+                  {registeredSessions
+                    .sort((a, b) => a.slot_index - b.slot_index)
+                    .map(session => {
+                      const stage = stages.find(s => s.id === session.stage_id);
+                      const slot = timeSlots[session.slot_index];
+                      return (
+                        <div key={session.id} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
+                          <div className="flex items-center gap-2 text-xs text-green-400 mb-1">
+                            <Clock className="w-3 h-3" />
+                            <span>{slot?.start}</span>
+                            <span>•</span>
+                            <span style={{ color: stage?.color }}>{stage?.name}</span>
+                          </div>
+                          <p className="text-white text-sm font-medium line-clamp-2">{session.title}</p>
+                          <p className="text-nconnect-muted text-xs mt-1">{session.speaker_name}</p>
                         </div>
-                        <p className="text-white text-sm font-medium line-clamp-2">{session.title}</p>
-                        <p className="text-nconnect-muted text-xs mt-1">{session.speaker_name}</p>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
-              )}
-
-              {hasChanges && (
-                <button onClick={handleSaveChanges} disabled={isSaving} className="btn-primary w-full mt-4 flex items-center justify-center gap-2">
-                  {isSaving ? (<><Loader2 className="w-4 h-4 animate-spin" />Ukladám...</>) : (<><Send className="w-4 h-4" />Potvrdiť zmeny</>)}
-                </button>
               )}
             </div>
 
             <div className="bg-nconnect-accent/5 border border-nconnect-accent/20 rounded-xl p-5">
               <h4 className="font-medium text-nconnect-accent mb-2">💡 Tip</h4>
-              <p className="text-nconnect-muted text-sm">Po výbere prednášok klikni na "Potvrdiť zmeny". Až potom ti príde súhrnný email.</p>
+              <p className="text-nconnect-muted text-sm">
+                V každom časovom bloku môžeš mať prihlásenú len jednu prednášku.
+                Zmeny sa ukladajú automaticky.
+              </p>
             </div>
           </div>
         </div>

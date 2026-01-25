@@ -5,25 +5,19 @@ export interface Stage {
   name: string;
   description?: string;
   color: string;
-  created_at: string;
 }
 
+// Fixed session (14 total, IDs 1-14)
 export interface Session {
-  id: string;
+  id: number;
+  slot_index: number;  // 0-6
+  stage_id: string;
+  stage?: Stage;
   title: string;
   speaker_name: string;
   speaker_company?: string;
   description?: string;
-  stage_id: string;
-  stage?: Stage;
-  date: string;
-  start_time: string;
-  end_time: string;
   capacity: number;
-  registered_count: number;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface Attendee {
@@ -36,13 +30,20 @@ export interface Attendee {
   updated_at: string;
 }
 
-export interface Registration {
-  id: string;
+// Attendee's registration status for a session
+export interface AttendeeSession {
   attendee_id: string;
-  session_id: string;
-  registered_at: string;
-  attendee?: Attendee;
-  session?: Session;
+  session_id: number;
+  is_registered: boolean;
+  registered_at?: string;
+}
+
+// Session with registration info for display
+export interface SessionWithStatus extends Session {
+  is_registered: boolean;
+  registered_count: number;  // Computed from attendee_sessions
+  is_full: boolean;
+  has_conflict: boolean;  // Same slot_index already registered
 }
 
 // Form types
@@ -51,13 +52,6 @@ export interface RegistrationFormData {
   name: string;
   company?: string;
   phone?: string;
-}
-
-export interface SessionWithAvailability extends Session {
-  is_full: boolean;
-  available_spots: number;
-  is_registered?: boolean;
-  has_conflict?: boolean;
 }
 
 // API Response types
@@ -74,4 +68,11 @@ export interface EmailData {
   attendeeName: string;
   sessions?: Session[];
   actionType: 'registration' | 'session_added' | 'session_removed' | 'update';
+}
+
+// Time slot type
+export interface TimeSlot {
+  index: number;
+  start: string;
+  end: string;
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email';
+import { TOTAL_SESSIONS } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,25 @@ export async function POST(request: NextRequest) {
         { error: 'Registrácia zlyhala. Skús to znova.' },
         { status: 500 }
       );
+    }
+
+    // Initialize 14 attendee_sessions records (all unregistered)
+    const attendeeSessions = [];
+    for (let sessionId = 1; sessionId <= TOTAL_SESSIONS; sessionId++) {
+      attendeeSessions.push({
+        attendee_id: attendee.id,
+        session_id: sessionId,
+        is_registered: false,
+      });
+    }
+
+    const { error: sessionsError } = await supabase
+      .from('attendee_sessions')
+      .insert(attendeeSessions);
+
+    if (sessionsError) {
+      console.error('Failed to initialize attendee sessions:', sessionsError);
+      // Continue anyway - they can be created later
     }
 
     // Send welcome email
