@@ -35,11 +35,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get attendee's registrations
+    // Get attendee's registrations - filter by is_registered=true in query
     const { data: attendeeSessions, error: attendeeError } = await supabase
       .from('attendee_sessions')
-      .select('session_id, is_registered')
-      .eq('attendee_id', attendeeId);
+      .select('session_id')
+      .eq('attendee_id', attendeeId)
+      .eq('is_registered', true);
 
     if (attendeeError) {
       console.error('Attendee sessions fetch error:', attendeeError);
@@ -69,12 +70,10 @@ export async function GET(request: NextRequest) {
       countMap[c.session_id] = (countMap[c.session_id] || 0) + 1;
     });
 
-    // Create registration map - only include sessions where is_registered is true
+    // Create registration map - all returned sessions are registered (filtered in query)
     const registrationMap: Record<number, boolean> = {};
     attendeeSessions?.forEach((as) => {
-      if (as.is_registered) {
-        registrationMap[as.session_id] = true;
-      }
+      registrationMap[as.session_id] = true;
     });
 
     // Find which slots user is registered for
