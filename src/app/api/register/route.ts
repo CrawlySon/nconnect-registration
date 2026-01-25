@@ -62,7 +62,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    await supabase.from('attendee_sessions').insert(attendeeSessions);
+    const { error: sessionsError } = await supabase
+      .from('attendee_sessions')
+      .insert(attendeeSessions);
+
+    if (sessionsError) {
+      console.error('Failed to create attendee_sessions:', sessionsError);
+    }
 
     // Send welcome email
     try {

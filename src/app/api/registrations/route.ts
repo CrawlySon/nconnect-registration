@@ -62,18 +62,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Update registration
-    const { error: updateError } = await supabase
+    // Upsert registration (insert if not exists, update if exists)
+    const { error: upsertError } = await supabase
       .from('attendee_sessions')
-      .update({
+      .upsert({
+        attendee_id: attendeeId,
+        session_id: sessionId,
         is_registered: register,
         registered_at: register ? new Date().toISOString() : null,
-      })
-      .eq('attendee_id', attendeeId)
-      .eq('session_id', sessionId);
+      }, {
+        onConflict: 'attendee_id,session_id',
+      });
 
-    if (updateError) {
-      console.error('Registration update error:', updateError);
+    if (upsertError) {
+      console.error('Registration upsert error:', upsertError);
       return NextResponse.json(
         { error: 'Nepodarilo sa aktualizovat registraciu' },
         { status: 500 }
