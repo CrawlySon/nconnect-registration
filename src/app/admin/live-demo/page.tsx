@@ -7,14 +7,15 @@ import {
   ArrowLeft, Loader2, Play, Clock, User,
   Calendar, Eye, Settings
 } from 'lucide-react';
-import { Attendee, Session } from '@/types';
+import { Attendee, Session, TimeSlot } from '@/types';
+import { TIME_SLOTS, CONFERENCE_DATE } from '@/lib/constants';
 
 export default function AdminLiveDemoPage() {
   const router = useRouter();
   const [attendees, setAttendees] = useState<Attendee[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedAttendee, setSelectedAttendee] = useState<string>('');
-  const [demoDate, setDemoDate] = useState<string>('2026-03-26');
+  const [demoDate, setDemoDate] = useState<string>(CONFERENCE_DATE);
   const [demoTime, setDemoTime] = useState<string>('09:30');
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,10 +42,7 @@ export default function AdminLiveDemoPage() {
       setAttendees(attendeesData.attendees || []);
       setSessions(sessionsData.sessions || []);
 
-      // Get first session date for default
-      if (sessionsData.sessions?.length > 0) {
-        setDemoDate(sessionsData.sessions[0].date);
-      }
+      // Date is fixed from constants
     } catch (err) {
       console.error('Failed to load data:', err);
     } finally {
@@ -68,15 +66,12 @@ export default function AdminLiveDemoPage() {
     a.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Get unique time slots from sessions
-  const timeSlots = Array.from(new Set(sessions.map(s => s.start_time))).sort();
-
-  // Quick time presets based on session times
+  // Quick time presets based on fixed time slots
   const timePresets = [
     { label: 'Pred konferenciou', time: '08:00' },
-    ...timeSlots.slice(0, 5).map((t, i) => ({
-      label: `Slot ${i + 1} (${t.substring(0, 5)})`,
-      time: t.substring(0, 5)
+    ...TIME_SLOTS.map((slot, i) => ({
+      label: `Slot ${i + 1} (${slot.start})`,
+      time: slot.start
     })),
     { label: 'Po konferencii', time: '18:00' },
   ];

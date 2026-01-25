@@ -1,6 +1,6 @@
 import { Resend } from 'resend';
 import { Session } from '@/types';
-import { formatTime } from './utils';
+import { TIME_SLOTS } from './constants';
 
 // Lazy initialization to avoid build errors
 let resend: Resend | null = null;
@@ -33,44 +33,46 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
   switch (type) {
     case 'registration':
       subject = 'Vitaj na nConnect26!';
-      heading = 'Registrácia úspešná';
+      heading = 'Registracia uspesna';
       emoji = '🎉';
-      message = `Ďakujeme za registráciu na IT konferenciu nConnect26! Teraz si môžeš vybrať prednášky, ktoré chceš navštíviť.`;
+      message = `Dakujeme za registraciu na IT konferenciu nConnect26! Teraz si mozes vybrat prednasky, ktore chces navstivit.`;
       break;
     case 'session_added':
-      subject = `Prihlásenie na prednášku: ${changedSession?.title}`;
-      heading = 'Prihlásenie potvrdené';
+      subject = `Prihlasenie na prednasku: ${changedSession?.title}`;
+      heading = 'Prihlasenie potvrdene';
       emoji = '✅';
-      message = `Úspešne si sa prihlásil/a na prednášku "<strong>${changedSession?.title}</strong>".`;
+      message = `Uspesne si sa prihlasil/a na prednasku "<strong>${changedSession?.title}</strong>".`;
       break;
     case 'session_removed':
-      subject = `Odhlásenie z prednášky: ${changedSession?.title}`;
-      heading = 'Odhlásenie z prednášky';
+      subject = `Odhlasenie z prednasky: ${changedSession?.title}`;
+      heading = 'Odhlasenie z prednasky';
       emoji = '📝';
-      message = `Bol/a si odhlásený/á z prednášky "<strong>${changedSession?.title}</strong>".`;
+      message = `Bol/a si odhlaseny/a z prednasky "<strong>${changedSession?.title}</strong>".`;
       break;
     case 'update':
-      subject = 'Prehľad tvojich prednášok na nConnect26';
-      heading = 'Prehľad registrácie';
+      subject = 'Prehlad tvojich prednasok na nConnect26';
+      heading = 'Prehlad registracie';
       emoji = '📋';
-      message = 'Tu je aktuálny prehľad tvojich vybraných prednášok.';
+      message = 'Tu je aktualny prehlad tvojich vybranych prednasok.';
       break;
   }
 
-  // Sort sessions by time
-  const sortedSessions = [...sessions].sort((a, b) => a.start_time.localeCompare(b.start_time));
+  // Sort sessions by slot_index
+  const sortedSessions = [...sessions].sort((a, b) => a.slot_index - b.slot_index);
 
   const sessionsHtml = sortedSessions.length > 0 ? `
     <div style="margin-top: 24px;">
       <h3 style="color: #0A1628; margin-bottom: 16px; font-size: 18px;">📅 Tvoj program na nConnect26</h3>
-      ${sortedSessions.map(session => `
+      ${sortedSessions.map(session => {
+        const slot = TIME_SLOTS[session.slot_index];
+        return `
         <div style="background: #f8fafc; border-left: 4px solid ${session.stage?.color || '#00D4FF'}; padding: 16px; margin-bottom: 12px; border-radius: 0 8px 8px 0;">
           <div style="display: flex; align-items: center; margin-bottom: 8px;">
             <span style="background: ${session.stage?.color || '#00D4FF'}22; color: ${session.stage?.color || '#00D4FF'}; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">
               ${session.stage?.name || 'Stage'}
             </span>
             <span style="color: #64748B; font-size: 14px; margin-left: 12px;">
-              🕐 ${formatTime(session.start_time)} - ${formatTime(session.end_time)}
+              🕐 ${slot?.start || ''} - ${slot?.end || ''}
             </span>
           </div>
           <h4 style="margin: 0 0 4px 0; color: #0A1628; font-size: 16px;">${session.title}</h4>
@@ -78,12 +80,12 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
             👤 ${session.speaker_name}${session.speaker_company ? ` • ${session.speaker_company}` : ''}
           </p>
         </div>
-      `).join('')}
+      `}).join('')}
     </div>
   ` : `
     <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin-top: 24px;">
       <p style="margin: 0; color: #92400e;">
-        ⚠️ Zatiaľ nemáš vybrané žiadne prednášky. Klikni na tlačidlo nižšie a vyber si z ponuky.
+        ⚠️ Zatial nemas vybrane ziadne prednasky. Klikni na tlacidlo nizsie a vyber si z ponuky.
       </p>
     </div>
   `;
@@ -101,7 +103,7 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
           <div style="background: linear-gradient(135deg, #0A1628 0%, #1E3A5F 100%); padding: 32px; text-align: center;">
             <h1 style="color: #00D4FF; margin: 0; font-size: 32px; font-weight: bold;">nConnect<span style="color: #FF6B35;">26</span></h1>
             <p style="color: #94a3b8; margin: 12px 0 0 0; font-size: 14px;">
-              📍 26. marca 2026 • Študentské centrum UKF Nitra
+              📍 26. marca 2026 • Studentske centrum UKF Nitra
             </p>
           </div>
 
@@ -120,14 +122,14 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
             <!-- CTA Button -->
             <div style="text-align: center; margin-top: 32px;">
               <a href="${appUrl}" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #f97316 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.4);">
-                Spravovať prednášky →
+                Spravovat prednasky →
               </a>
             </div>
 
             <!-- Info box -->
             <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 16px; margin-top: 32px;">
               <p style="margin: 0; color: #0369a1; font-size: 14px;">
-                💡 <strong>Tip:</strong> Môžeš si kedykoľvek zmeniť výber prednášok až do dňa konferencie.
+                💡 <strong>Tip:</strong> Mozes si kedykolvek zmenit vyber prednasok az do dna konferencie.
               </p>
             </div>
           </div>
@@ -135,10 +137,10 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
           <!-- Footer -->
           <div style="background: #f8fafc; padding: 24px 32px; border-top: 1px solid #e5e7eb;">
             <p style="margin: 0 0 8px 0; color: #64748B; font-size: 14px; text-align: center;">
-              Máš otázky? Napíš nám na <a href="mailto:info@nconnect.sk" style="color: #00D4FF; text-decoration: none;">info@nconnect.sk</a>
+              Mas otazky? Napis nam na <a href="mailto:info@nconnect.sk" style="color: #00D4FF; text-decoration: none;">info@nconnect.sk</a>
             </p>
             <p style="margin: 0; color: #94a3b8; font-size: 12px; text-align: center;">
-              © 2026 nConnect • Fakulta prírodných vied a informatiky UKF Nitra
+              © 2026 nConnect • Fakulta prirodnych vied a informatiky UKF Nitra
             </p>
           </div>
         </div>

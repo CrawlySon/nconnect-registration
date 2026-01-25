@@ -4,30 +4,30 @@ import { Suspense } from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-  Clock, User, Building, Loader2, AlertCircle,
+  Clock, User, Loader2, AlertCircle,
   XCircle, MapPin, Play, CheckCircle2
 } from 'lucide-react';
-import { SessionWithAvailability, Stage, Attendee } from '@/types';
-import { formatTime } from '@/lib/utils';
+import { SessionWithStatus, Stage, Attendee, TimeSlot } from '@/types';
+import { CONFERENCE_DATE } from '@/lib/constants';
 
-interface LiveSession extends SessionWithAvailability {
+interface LiveSession extends SessionWithStatus {
   status: 'past' | 'current' | 'upcoming';
+  time_slot: TimeSlot;
 }
 
 function LiveTimelineContent() {
   const searchParams = useSearchParams();
   const attendeeId = searchParams.get('attendee');
-  const demoTime = searchParams.get('time'); // For admin demo mode
+  const demoTime = searchParams.get('time');
 
-  const [sessions, setSessions] = useState<SessionWithAvailability[]>([]);
+  const [sessions, setSessions] = useState<SessionWithStatus[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
+  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [attendee, setAttendee] = useState<Attendee | null>(null);
-  const [registeredIds, setRegisteredIds] = useState<string[]>([]);
   const [currentTime, setCurrentTime] = useState<Date>(demoTime ? new Date(demoTime) : new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Update current time every minute (unless in demo mode)
   useEffect(() => {
     if (demoTime) return;
 
@@ -49,8 +49,8 @@ function LiveTimelineContent() {
 
       setSessions(data.sessions);
       setStages(data.stages);
+      setTimeSlots(data.timeSlots);
       setAttendee(data.attendee);
-      setRegisteredIds(data.registeredIds);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nepodarilo sa nacitat data');
     } finally {
@@ -62,17 +62,16 @@ function LiveTimelineContent() {
     loadData();
   }, [loadData]);
 
-  const getSessionStatus = (session: SessionWithAvailability): 'past' | 'current' | 'upcoming' => {
+  const getSessionStatus = (session: SessionWithStatus, slot: TimeSlot): 'past' | 'current' | 'upcoming' => {
     const now = currentTime;
     const today = now.toISOString().split('T')[0];
 
-    // If not conference day, all are upcoming
-    if (session.date !== today) {
-      return session.date < today ? 'past' : 'upcoming';
+    if (CONFERENCE_DATE !== today) {
+      return CONFERENCE_DATE < today ? 'past' : 'upcoming';
     }
 
-    const [startHour, startMin] = session.start_time.split(':').map(Number);
-    const [endHour, endMin] = session.end_time.split(':').map(Number);
+    const [startHour, startMin] = slot.start.split(':').map(Number);
+    const [endHour, endMin] = slot.end.split(':').map(Number);
 
     const sessionStart = new Date(now);
     sessionStart.setHours(startHour, startMin, 0, 0);
@@ -86,21 +85,16 @@ function LiveTimelineContent() {
   };
 
   const getTimeProgress = (): number => {
-    // Find the current session time slot and calculate progress
     const now = currentTime;
-    const registeredSessions = sessions.filter(s => registeredIds.includes(s.id));
+    const registeredSessions = sessions.filter(s => s.is_registered);
 
-    if (registeredSessions.length === 0) return 0;
+    if (registeredSessions.length === 0 || timeSlots.length === 0) return 0;
 
-    const sortedSessions = [...registeredSessions].sort((a, b) =>
-      a.start_time.localeCompare(b.start_time)
-    );
+    const firstSlot = timeSlots[0];
+    const lastSlot = timeSlots[timeSlots.length - 1];
 
-    const firstStart = sortedSessions[0].start_time;
-    const lastEnd = sortedSessions[sortedSessions.length - 1].end_time;
-
-    const [firstHour, firstMin] = firstStart.split(':').map(Number);
-    const [lastHour, lastMin] = lastEnd.split(':').map(Number);
+    const [firstHour, firstMin] = firstSlot.start.split(':').map(Number);
+    const [lastHour, lastMin] = lastSlot.end.split(':').map(Number);
 
     const dayStart = new Date(now);
     dayStart.setHours(firstHour, firstMin, 0, 0);
@@ -123,9 +117,9 @@ function LiveTimelineContent() {
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-white mb-2">Chyba identifikacie</h1>
-          <p className="text-nconnect-muted mb-4">Pre pristup k tejto stranke sa musis najprv prihlasit.</p>
-          <a href="/login" className="btn-primary inline-flex items-center">
-            Prihlasit sa
+          <p className="text-nconnect-muted mb-4">Pre pristup k tejto stranke sa musis najprv zaregistrovat.</p>
+          <a href="/" className="btn-primary inline-flex items-center">
+            Zaregistrovat sa
           </a>
         </div>
       </div>
@@ -152,13 +146,17 @@ function LiveTimelineContent() {
     );
   }
 
-  const registeredSessions = sessions
-    .filter(s => registeredIds.includes(s.id))
-    .sort((a, b) => a.start_time.localeCompare(b.start_time))
-    .map(s => ({
-      ...s,
-      status: getSessionStatus(s),
-    })) as LiveSession[];
+  const registeredSessions: LiveSession[] = sessions
+    .filter(s => s.is_registered)
+    .map(s => {
+      const slot = timeSlots[s.slot_index];
+      return {
+        ...s,
+        status: getSessionStatus(s, slot),
+        time_slot: slot,
+      };
+    })
+    .sort((a, b) => a.slot_index - b.slot_index);
 
   const currentSession = registeredSessions.find(s => s.status === 'current');
   const upcomingSessions = registeredSessions.filter(s => s.status === 'upcoming');
@@ -169,7 +167,6 @@ function LiveTimelineContent() {
   return (
     <div className="glass-bg min-h-screen">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Demo mode indicator */}
         {demoTime && (
           <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4 mb-6">
             <p className="text-yellow-400 text-center font-medium">
@@ -178,7 +175,6 @@ function LiveTimelineContent() {
           </div>
         )}
 
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-green-500/20 border border-green-500/50 rounded-full px-4 py-2 mb-4">
             <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -193,7 +189,6 @@ function LiveTimelineContent() {
           </p>
         </div>
 
-        {/* Attendee info */}
         {attendee && (
           <div className="glass-card mb-6">
             <div className="flex items-center gap-4">
@@ -208,7 +203,6 @@ function LiveTimelineContent() {
           </div>
         )}
 
-        {/* Progress bar */}
         <div className="glass-card mb-8">
           <div className="flex items-center justify-between mb-2">
             <span className="text-nconnect-muted text-sm">Priebeh dna</span>
@@ -226,7 +220,6 @@ function LiveTimelineContent() {
           </p>
         </div>
 
-        {/* Current session */}
         {currentSession && (
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -246,7 +239,7 @@ function LiveTimelineContent() {
                   {stages.find(s => s.id === currentSession.stage_id)?.name}
                 </span>
                 <span className="text-nconnect-muted text-sm">
-                  {formatTime(currentSession.start_time)} - {formatTime(currentSession.end_time)}
+                  {currentSession.time_slot.start} - {currentSession.time_slot.end}
                 </span>
               </div>
               <h3 className="text-xl font-bold text-white mb-2">{currentSession.title}</h3>
@@ -258,7 +251,6 @@ function LiveTimelineContent() {
           </div>
         )}
 
-        {/* No sessions registered message */}
         {registeredSessions.length === 0 && (
           <div className="glass-card text-center py-12">
             <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
@@ -270,7 +262,6 @@ function LiveTimelineContent() {
           </div>
         )}
 
-        {/* Upcoming sessions */}
         {upcomingSessions.length > 0 && (
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
@@ -283,8 +274,8 @@ function LiveTimelineContent() {
                 return (
                   <div key={session.id} className="glass-panel flex items-center gap-4">
                     <div className="text-center min-w-[60px]">
-                      <p className="text-white font-bold">{formatTime(session.start_time)}</p>
-                      <p className="text-nconnect-muted text-xs">{formatTime(session.end_time)}</p>
+                      <p className="text-white font-bold">{session.time_slot.start}</p>
+                      <p className="text-nconnect-muted text-xs">{session.time_slot.end}</p>
                     </div>
                     <div
                       className="w-1 h-12 rounded-full"
@@ -301,7 +292,6 @@ function LiveTimelineContent() {
           </div>
         )}
 
-        {/* Past sessions */}
         {pastSessions.length > 0 && (
           <div>
             <h2 className="text-lg font-semibold text-nconnect-muted mb-4 flex items-center gap-2">
@@ -314,7 +304,7 @@ function LiveTimelineContent() {
                 return (
                   <div key={session.id} className="glass-panel flex items-center gap-4">
                     <div className="text-center min-w-[60px]">
-                      <p className="text-nconnect-muted font-bold">{formatTime(session.start_time)}</p>
+                      <p className="text-nconnect-muted font-bold">{session.time_slot.start}</p>
                     </div>
                     <div
                       className="w-1 h-8 rounded-full opacity-50"
@@ -331,7 +321,6 @@ function LiveTimelineContent() {
           </div>
         )}
 
-        {/* Link to session selection */}
         <div className="mt-8 text-center">
           <a
             href={`/sessions?attendee=${attendeeId}`}
