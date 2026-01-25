@@ -1,64 +1,32 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  ArrowLeft, Loader2, Users, Search,
-  ChevronLeft, ChevronRight, X, Clock,
-  Building, Mail, Calendar, Eye
+  Users, Search, Loader2, AlertCircle,
+  ArrowLeft, Mail, Building, Calendar,
+  ChevronRight, Trash2
 } from 'lucide-react';
-import { Attendee } from '@/types';
-import { formatTime } from '@/lib/utils';
 
-interface AttendeeWithCount extends Attendee {
-  registration_count: number;
-}
-
-interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  totalPages: number;
-}
-
-interface RegistrationDetail {
+interface AttendeeWithCount {
   id: string;
-  registered_at: string;
-  session: {
-    id: string;
-    title: string;
-    speaker_name: string;
-    speaker_company?: string;
-    date: string;
-    start_time: string;
-    end_time: string;
-    stage: {
-      id: string;
-      name: string;
-      color: string;
-    };
-  };
-}
-
-interface AttendeeDetail extends Attendee {
-  registrations: RegistrationDetail[];
+  email: string;
+  name: string;
+  company?: string;
+  phone?: string;
+  created_at: string;
+  registration_count: number;
 }
 
 export default function AdminAttendeesPage() {
   const router = useRouter();
   const [attendees, setAttendees] = useState<AttendeeWithCount[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
-  const [search, setSearch] = useState('');
-  const [searchInput, setSearchInput] = useState('');
+  const [filteredAttendees, setFilteredAttendees] = useState<AttendeeWithCount[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedAttendee, setSelectedAttendee] = useState<AttendeeDetail | null>(null);
-  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [error, setError] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     const isAuth = sessionStorage.getItem('admin_authenticated');
@@ -66,301 +34,191 @@ export default function AdminAttendeesPage() {
       router.push('/admin');
       return;
     }
+    loadAttendees();
   }, [router]);
 
-  const loadAttendees = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: pagination.page.toString(),
-        limit: pagination.limit.toString(),
-      });
-      if (search) params.append('search', search);
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredAttendees(attendees);
+    } else {
+      const query = searchQuery.toLowerCase();
+      setFilteredAttendees(
+        attendees.filter(a =>
+          a.name.toLowerCase().includes(query) ||
+          a.email.toLowerCase().includes(query) ||
+          (a.company && a.company.toLowerCase().includes(query))
+        )
+      );
+    }
+  }, [searchQuery, attendees]);
 
-      const response = await fetch(`/api/admin/attendees?${params}`);
+  const loadAttendees = async () => {
+    try {
+      const response = await fetch('/api/admin/attendees');
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.error);
 
       setAttendees(data.attendees);
-      setPagination(data.pagination);
+      setFilteredAttendees(data.attendees);
     } catch (err) {
-      console.error('Failed to load attendees:', err);
+      setError(err instanceof Error ? err.message : 'Nepodarilo sa načítať účastníkov');
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.page, pagination.limit, search]);
-
-  useEffect(() => {
-    loadAttendees();
-  }, [loadAttendees]);
-
-  const handleSearch = () => {
-    setSearch(searchInput);
-    setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+  const handleDelete = async (attendeeId: string, attendeeName: string) => {
+    if (!confirm(`Naozaj chceš vymazať účastníka "${attendeeName}"? Táto akcia je nevratná a vymaže aj všetky jeho registrácie.`)) {
+      return;
     }
-  };
 
-  const loadAttendeeDetail = async (id: string) => {
-    setIsLoadingDetail(true);
+    setDeletingId(attendeeId);
     try {
-      const response = await fetch(`/api/admin/attendees/${id}`);
+      const response = await fetch(`/api/admin/attendees/${attendeeId}`, {
+        method: 'DELETE',
+      });
+
       const data = await response.json();
 
       if (!response.ok) throw new Error(data.error);
 
-      setSelectedAttendee({
-        ...data.attendee,
-        registrations: data.registrations,
-      });
+      // Remove from local state
+      setAttendees(prev => prev.filter(a => a.id !== attendeeId));
     } catch (err) {
-      console.error('Failed to load attendee detail:', err);
+      alert(err instanceof Error ? err.message : 'Vymazanie zlyhalo');
     } finally {
-      setIsLoadingDetail(false);
+      setDeletingId(null);
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-nconnect-accent animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-white">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="glass-bg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/admin/dashboard"
-              className="p-2 hover:bg-white/5 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-nconnect-muted" />
-            </Link>
-            <div>
-              <h1 className="text-3xl font-display font-bold text-white">
-                Zoznam účastníkov
-              </h1>
-              <p className="text-nconnect-muted mt-1">
-                {pagination.total} registrovaných účastníkov
-              </p>
-            </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="mb-8">
+        <Link
+          href="/admin/dashboard"
+          className="inline-flex items-center gap-2 text-nconnect-muted hover:text-white transition-colors mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Späť na dashboard
+        </Link>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-display font-bold text-white">
+              Účastníci
+            </h1>
+            <p className="text-nconnect-muted mt-1">
+              {attendees.length} registrovaných účastníkov
+            </p>
           </div>
         </div>
+      </div>
 
-        {/* Search */}
-        <div className="glass-card mb-6">
-          <div className="flex gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-nconnect-muted" />
-              <input
-                type="text"
-                placeholder="Hladaj podla mena, emailu alebo firmy..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                className="glass-input pl-10"
-              />
-            </div>
-            <button
-              onClick={handleSearch}
-              className="glass-button flex items-center gap-2"
-            >
-              <Search className="w-4 h-4" />
-              Hladat
-            </button>
-            {search && (
-              <button
-                onClick={() => {
-                  setSearch('');
-                  setSearchInput('');
-                  setPagination(prev => ({ ...prev, page: 1 }));
-                }}
-                className="px-4 py-2 text-nconnect-muted hover:text-white transition-colors"
-              >
-                Zrusit filter
-              </button>
-            )}
-          </div>
+      {/* Search */}
+      <div className="mb-6">
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-nconnect-muted" />
+          <input
+            type="text"
+            placeholder="Hľadať podľa mena, emailu alebo firmy..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input-field pl-10 w-full"
+          />
         </div>
+      </div>
 
-        {/* Table */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-nconnect-accent animate-spin" />
-          </div>
-        ) : attendees.length === 0 ? (
-          <div className="glass-card text-center py-12">
+      {/* Attendees list */}
+      <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl overflow-hidden">
+        {filteredAttendees.length === 0 ? (
+          <div className="p-8 text-center">
             <Users className="w-12 h-12 text-nconnect-muted mx-auto mb-4" />
-            <p className="text-white text-lg">Ziadni ucastnici nenajdeni</p>
-            <p className="text-nconnect-muted mt-2">
-              {search ? 'Skus zmenit vyhladavaci vyraz' : 'Zatial sa nikto nezaregistroval'}
+            <p className="text-nconnect-muted">
+              {searchQuery ? 'Žiadni účastníci nezodpovedajú hľadaniu' : 'Zatiaľ žiadni účastníci'}
             </p>
           </div>
         ) : (
-          <>
-            <div className="glass-table">
-              <table className="w-full">
-                <thead>
-                  <tr>
-                    <th>Meno</th>
-                    <th>Email</th>
-                    <th>Firma</th>
-                    <th>Registracia</th>
-                    <th>Prednasky</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendees.map(attendee => (
-                    <tr key={attendee.id}>
-                      <td className="text-white font-medium">{attendee.name}</td>
-                      <td className="text-nconnect-muted">{attendee.email}</td>
-                      <td className="text-nconnect-muted">{attendee.company || '-'}</td>
-                      <td className="text-nconnect-muted text-sm">
-                        {new Date(attendee.created_at).toLocaleDateString('sk-SK')}
-                      </td>
-                      <td>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          attendee.registration_count > 0
-                            ? 'bg-green-500/20 text-green-400'
-                            : 'bg-nconnect-secondary/30 text-nconnect-muted'
-                        }`}>
-                          {attendee.registration_count} prednasok
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          onClick={() => loadAttendeeDetail(attendee.id)}
-                          className="p-2 hover:bg-white/5 rounded-lg transition-colors"
-                          title="Zobrazit detail"
-                        >
-                          <Eye className="w-4 h-4 text-nconnect-accent" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination */}
-            {pagination.totalPages > 1 && (
-              <div className="flex items-center justify-between mt-6">
-                <p className="text-nconnect-muted text-sm">
-                  Zobrazujem {(pagination.page - 1) * pagination.limit + 1} - {Math.min(pagination.page * pagination.limit, pagination.total)} z {pagination.total}
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-                    disabled={pagination.page === 1}
-                    className="glass-button disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                  <span className="text-white px-4">
-                    {pagination.page} / {pagination.totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-                    disabled={pagination.page === pagination.totalPages}
-                    className="glass-button disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Detail Modal */}
-        {(selectedAttendee || isLoadingDetail) && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="glass-card max-w-2xl w-full max-h-[80vh] overflow-auto">
-              {isLoadingDetail ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 text-nconnect-accent animate-spin" />
-                </div>
-              ) : selectedAttendee && (
-                <>
-                  <div className="flex items-start justify-between mb-6">
-                    <div>
-                      <h2 className="text-2xl font-bold text-white">{selectedAttendee.name}</h2>
-                      <div className="flex items-center gap-4 mt-2 text-nconnect-muted">
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-4 h-4" />
-                          {selectedAttendee.email}
-                        </span>
-                        {selectedAttendee.company && (
-                          <span className="flex items-center gap-1">
-                            <Building className="w-4 h-4" />
-                            {selectedAttendee.company}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-nconnect-muted text-sm mt-2">
-                        <Calendar className="w-4 h-4 inline mr-1" />
-                        Registracia: {new Date(selectedAttendee.created_at).toLocaleDateString('sk-SK')}
-                      </p>
+          <div className="divide-y divide-nconnect-secondary/30">
+            {filteredAttendees.map(attendee => (
+              <div
+                key={attendee.id}
+                className="p-4 hover:bg-nconnect-primary/30 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h3 className="text-white font-medium truncate">
+                        {attendee.name}
+                      </h3>
+                      <span className="px-2 py-0.5 bg-nconnect-accent/20 text-nconnect-accent text-xs rounded-full">
+                        {attendee.registration_count} prednášok
+                      </span>
                     </div>
-                    <button
-                      onClick={() => setSelectedAttendee(null)}
-                      className="p-2 hover:bg-white/5 rounded-lg transition-colors"
-                    >
-                      <X className="w-5 h-5 text-nconnect-muted" />
-                    </button>
+
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-nconnect-muted">
+                      <span className="flex items-center gap-1">
+                        <Mail className="w-3.5 h-3.5" />
+                        {attendee.email}
+                      </span>
+                      {attendee.company && (
+                        <span className="flex items-center gap-1">
+                          <Building className="w-3.5 h-3.5" />
+                          {attendee.company}
+                        </span>
+                      )}
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {new Date(attendee.created_at).toLocaleDateString('sk-SK')}
+                      </span>
+                    </div>
                   </div>
 
-                  <h3 className="text-lg font-semibold text-white mb-4">
-                    Registrovane prednasky ({selectedAttendee.registrations.length})
-                  </h3>
+                  <div className="flex items-center gap-2 ml-4">
+                    <button
+                      onClick={() => handleDelete(attendee.id, attendee.name)}
+                      disabled={deletingId === attendee.id}
+                      className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors disabled:opacity-50"
+                      title="Vymazať účastníka"
+                    >
+                      {deletingId === attendee.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
 
-                  {selectedAttendee.registrations.length === 0 ? (
-                    <p className="text-nconnect-muted text-center py-6">
-                      Ziadne registrovane prednasky
-                    </p>
-                  ) : (
-                    <div className="space-y-3">
-                      {selectedAttendee.registrations.map(reg => (
-                        <div
-                          key={reg.id}
-                          className="glass-panel"
-                        >
-                          <div className="flex items-center gap-3 mb-2">
-                            <span
-                              className="px-2 py-1 rounded-full text-xs font-medium"
-                              style={{
-                                backgroundColor: `${reg.session.stage.color}20`,
-                                color: reg.session.stage.color
-                              }}
-                            >
-                              {reg.session.stage.name}
-                            </span>
-                            <span className="text-nconnect-muted text-sm flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {formatTime(reg.session.start_time)} - {formatTime(reg.session.end_time)}
-                            </span>
-                          </div>
-                          <p className="text-white font-medium">{reg.session.title}</p>
-                          <p className="text-nconnect-muted text-sm">
-                            {reg.session.speaker_name}
-                            {reg.session.speaker_company && ` - ${reg.session.speaker_company}`}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => setSelectedAttendee(null)}
-                    className="glass-button w-full mt-6"
-                  >
-                    Zavriet
-                  </button>
-                </>
-              )}
-            </div>
+                    <Link
+                      href={`/admin/attendees/${attendee.id}`}
+                      className="p-2 text-nconnect-muted hover:text-white hover:bg-nconnect-secondary/30 rounded-lg transition-colors"
+                      title="Detail a správa"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
