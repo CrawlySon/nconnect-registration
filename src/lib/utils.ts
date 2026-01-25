@@ -1,25 +1,10 @@
-import { Session, SessionWithAvailability } from '@/types';
+import { Session, SessionWithStatus } from '@/types';
 
 /**
- * Checks if two sessions have a time conflict
+ * Checks if two sessions have a time conflict (same slot_index)
  */
 export function hasTimeConflict(session1: Session, session2: Session): boolean {
-  // Sessions on different dates don't conflict
-  if (session1.date !== session2.date) return false;
-  
-  // Convert times to minutes for easier comparison
-  const toMinutes = (time: string): number => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours * 60 + minutes;
-  };
-  
-  const start1 = toMinutes(session1.start_time);
-  const end1 = toMinutes(session1.end_time);
-  const start2 = toMinutes(session2.start_time);
-  const end2 = toMinutes(session2.end_time);
-  
-  // Check for overlap: session1 starts before session2 ends AND session1 ends after session2 starts
-  return start1 < end2 && end1 > start2;
+  return session1.slot_index === session2.slot_index;
 }
 
 /**
@@ -45,30 +30,6 @@ export function conflictsWithRegistered(
 }
 
 /**
- * Enriches sessions with availability info
- */
-export function enrichSessionsWithAvailability(
-  sessions: Session[],
-  registeredSessionIds: string[]
-): SessionWithAvailability[] {
-  const registeredSessions = sessions.filter(s => registeredSessionIds.includes(s.id));
-  
-  return sessions.map(session => {
-    const isFull = session.registered_count >= session.capacity;
-    const isRegistered = registeredSessionIds.includes(session.id);
-    const hasConflict = !isRegistered && conflictsWithRegistered(session, registeredSessions);
-    
-    return {
-      ...session,
-      is_full: isFull,
-      available_spots: Math.max(0, session.capacity - session.registered_count),
-      is_registered: isRegistered,
-      has_conflict: hasConflict,
-    };
-  });
-}
-
-/**
  * Groups sessions by stage
  */
 export function groupSessionsByStage(sessions: Session[]): Record<string, Session[]> {
@@ -83,24 +44,16 @@ export function groupSessionsByStage(sessions: Session[]): Record<string, Sessio
 }
 
 /**
- * Sorts sessions by start time
+ * Sorts sessions by slot_index
  */
 export function sortSessionsByTime(sessions: Session[]): Session[] {
-  return [...sessions].sort((a, b) => {
-    // First sort by date
-    if (a.date !== b.date) {
-      return a.date.localeCompare(b.date);
-    }
-    // Then by start time
-    return a.start_time.localeCompare(b.start_time);
-  });
+  return [...sessions].sort((a, b) => a.slot_index - b.slot_index);
 }
 
 /**
  * Formats time to HH:MM format (removes seconds if present)
  */
 export function formatTime(time: string): string {
-  // Handle HH:MM:SS format by taking only HH:MM
   const parts = time.split(':');
   return `${parts[0]}:${parts[1]}`;
 }
