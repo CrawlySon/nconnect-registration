@@ -56,6 +56,12 @@ export async function GET(request: NextRequest) {
       .eq('is_active', true)
       .order('start_time');
 
+    console.log('Sessions query result:', {
+      sessionsCount: sessions?.length,
+      sessionIds: sessions?.map(s => s.id),
+      sessionsError
+    });
+
     if (sessionsError) {
       console.error('Sessions fetch error:', sessionsError);
       return NextResponse.json(

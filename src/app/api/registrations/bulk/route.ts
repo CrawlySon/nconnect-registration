@@ -7,6 +7,14 @@ export async function POST(request: NextRequest) {
   try {
     const { attendeeId, sessionIds, previousSessionIds } = await request.json();
 
+    console.log('Bulk registration request:', {
+      attendeeId,
+      sessionIds,
+      previousSessionIds,
+      sessionIdsType: typeof sessionIds,
+      sessionIdsLength: sessionIds?.length
+    });
+
     if (!attendeeId || !sessionIds) {
       return NextResponse.json(
         { error: 'Chýbajú povinné parametre' },
@@ -71,15 +79,19 @@ export async function POST(request: NextRequest) {
     if (toAdd.length > 0) {
       // Validate capacity and conflicts for new registrations
       for (const sessionId of toAdd) {
-        const { data: session } = await supabase
+        console.log('Looking for session:', sessionId);
+        const { data: session, error: sessionError } = await supabase
           .from('sessions')
           .select('*')
           .eq('id', sessionId)
           .single();
 
-        if (!session) {
+        console.log('Session query result:', { session, sessionError });
+
+        if (sessionError || !session) {
+          console.error('Session not found:', { sessionId, sessionError });
           return NextResponse.json(
-            { error: 'Prednáška nebola nájdená' },
+            { error: `Prednáška nebola nájdená (ID: ${sessionId})` },
             { status: 404 }
           );
         }
