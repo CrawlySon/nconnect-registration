@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  Users, Calendar, BarChart3, Settings, 
+import {
+  Users, Calendar, BarChart3, Settings,
   Loader2, AlertCircle, ChevronRight,
-  Download, Plus, LogOut
+  Download, Plus, LogOut, Play, FileSpreadsheet, Mail
 } from 'lucide-react';
 
 interface Stats {
@@ -44,9 +44,9 @@ export default function AdminDashboard() {
     try {
       const response = await fetch('/api/admin/stats');
       const data = await response.json();
-      
+
       if (!response.ok) throw new Error(data.error);
-      
+
       setStats(data.stats);
       setRecentAttendees(data.recentAttendees);
     } catch (err) {
@@ -92,10 +92,10 @@ export default function AdminDashboard() {
             Správa konferencie nConnect26
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <Link 
-            href="/admin/sessions/new" 
+          <Link
+            href="/admin/sessions/new"
             className="btn-primary flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -161,9 +161,9 @@ export default function AdminDashboard() {
         {/* Quick links */}
         <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl p-6">
           <h2 className="text-xl font-semibold text-white mb-4">Rýchle akcie</h2>
-          
+
           <div className="space-y-2">
-            <Link 
+            <Link
               href="/admin/sessions"
               className="flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
             >
@@ -174,7 +174,7 @@ export default function AdminDashboard() {
               <ChevronRight className="w-5 h-5 text-nconnect-muted" />
             </Link>
 
-            <Link 
+            <Link
               href="/admin/attendees"
               className="flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
             >
@@ -185,13 +185,57 @@ export default function AdminDashboard() {
               <ChevronRight className="w-5 h-5 text-nconnect-muted" />
             </Link>
 
-            <button 
+            <Link
+              href="/admin/analytics"
+              className="flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <BarChart3 className="w-5 h-5 text-nconnect-accent" />
+                <span className="text-white">Analytika</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-nconnect-muted" />
+            </Link>
+
+            <Link
+              href="/admin/live-demo"
+              className="flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Play className="w-5 h-5 text-nconnect-accent" />
+                <span className="text-white">Live demo režim</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-nconnect-muted" />
+            </Link>
+
+            <Link
+              href="/admin/email-test"
+              className="flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Mail className="w-5 h-5 text-nconnect-accent" />
+                <span className="text-white">Test emailov</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-nconnect-muted" />
+            </Link>
+
+            <button
+              onClick={() => window.location.href = '/api/admin/export/attendees'}
+              className="w-full flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="w-5 h-5 text-nconnect-accent" />
+                <span className="text-white">Export účastníkov (CSV)</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-nconnect-muted" />
+            </button>
+
+            <button
               onClick={() => window.location.href = '/api/admin/export'}
               className="w-full flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
             >
               <div className="flex items-center gap-3">
                 <Download className="w-5 h-5 text-nconnect-accent" />
-                <span className="text-white">Exportovať dáta (CSV)</span>
+                <span className="text-white">Export registrácií (CSV)</span>
               </div>
               <ChevronRight className="w-5 h-5 text-nconnect-muted" />
             </button>
@@ -201,13 +245,13 @@ export default function AdminDashboard() {
         {/* Recent registrations */}
         <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl p-6">
           <h2 className="text-xl font-semibold text-white mb-4">Najnovšie registrácie</h2>
-          
+
           {recentAttendees.length === 0 ? (
             <p className="text-nconnect-muted">Zatiaľ žiadne registrácie</p>
           ) : (
             <div className="space-y-3">
               {recentAttendees.map(attendee => (
-                <div 
+                <div
                   key={attendee.id}
                   className="flex items-center justify-between p-3 bg-nconnect-primary/50 rounded-lg"
                 >
