@@ -15,24 +15,35 @@ function SessionsContent() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
 
   const fetchSessions = useCallback(async () => {
+    console.log('[DEBUG] fetchSessions called, attendeeId:', attendeeId);
     if (!attendeeId) return;
 
     try {
       // Add timestamp to bypass any caching
-      const res = await fetch(`/api/sessions?attendee=${attendeeId}&_t=${Date.now()}`, {
+      const url = `/api/sessions?attendee=${attendeeId}&_t=${Date.now()}`;
+      console.log('[DEBUG] Fetching:', url);
+      const res = await fetch(url, {
         cache: 'no-store',
         headers: {
           'Cache-Control': 'no-cache',
         },
       });
       const data = await res.json();
+      console.log('[DEBUG] Sessions API response:', {
+        ok: res.ok,
+        sessionsCount: data.sessions?.length,
+        registeredCount: data.sessions?.filter((s: SessionWithStatus) => s.is_registered).length,
+        registeredIds: data.sessions?.filter((s: SessionWithStatus) => s.is_registered).map((s: SessionWithStatus) => s.id)
+      });
 
       if (!res.ok) {
         throw new Error(data.error || 'Nepodarilo sa nacitat prednasky');
       }
 
+      console.log('[DEBUG] Calling setSessions with', data.sessions.length, 'sessions');
       setSessions(data.sessions);
     } catch (err) {
+      console.error('[DEBUG] fetchSessions error:', err);
       setError(err instanceof Error ? err.message : 'Nieco sa pokazilo');
     } finally {
       setLoading(false);
@@ -44,9 +55,11 @@ function SessionsContent() {
   }, [fetchSessions]);
 
   const handleToggleRegistration = async (sessionId: number, currentlyRegistered: boolean) => {
+    console.log('[DEBUG] handleToggleRegistration called', { sessionId, currentlyRegistered, attendeeId });
     setActionLoading(sessionId);
 
     try {
+      console.log('[DEBUG] Sending registration request...');
       const res = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,16 +71,21 @@ function SessionsContent() {
       });
 
       const data = await res.json();
+      console.log('[DEBUG] Registration response:', { status: res.status, ok: res.ok, data });
 
       if (!res.ok) {
         throw new Error(data.error || 'Akcia zlyhala');
       }
 
+      console.log('[DEBUG] Calling fetchSessions...');
       await fetchSessions();
+      console.log('[DEBUG] fetchSessions completed, sessions state should be updated');
     } catch (err) {
+      console.error('[DEBUG] Error:', err);
       alert(err instanceof Error ? err.message : 'Nieco sa pokazilo');
     } finally {
       setActionLoading(null);
+      console.log('[DEBUG] handleToggleRegistration finished');
     }
   };
 
