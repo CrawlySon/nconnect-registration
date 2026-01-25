@@ -81,22 +81,24 @@ export default function AdminAttendeesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface-dark flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-surface-dark">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-surface-light border-b border-gray-800 py-4 px-4">
+      <header className="glass border-b border-white/10 py-4 px-4 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/admin/dashboard" className="text-gray-400 hover:text-white transition-colors">
+            <Link href="/admin/dashboard" className="text-slate-400 hover:text-white transition-colors">
               &larr; Dashboard
             </Link>
-            <h1 className="text-xl font-bold">Ucastnici ({attendees.length})</h1>
+            <h1 className="text-xl font-bold text-white">
+              Ucastnici <span className="text-slate-400 font-normal">({attendees.length})</span>
+            </h1>
           </div>
           <a
             href="/api/admin/export?type=attendees"
@@ -121,50 +123,50 @@ export default function AdminAttendeesPage() {
         </div>
 
         {/* Table */}
-        <div className="card overflow-hidden">
+        <div className="card overflow-hidden p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-800">
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Meno</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Email</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Typ</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Skola/Firma</th>
-                  <th className="text-center py-3 px-4 text-gray-400 font-medium">Prednasky</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Registracia</th>
-                  <th className="text-right py-3 px-4 text-gray-400 font-medium">Akcie</th>
+                <tr className="border-b border-white/10">
+                  <th className="text-left py-4 px-4 text-slate-400 font-medium text-sm">Meno</th>
+                  <th className="text-left py-4 px-4 text-slate-400 font-medium text-sm">Email</th>
+                  <th className="text-left py-4 px-4 text-slate-400 font-medium text-sm">Typ</th>
+                  <th className="text-left py-4 px-4 text-slate-400 font-medium text-sm">Skola/Firma</th>
+                  <th className="text-center py-4 px-4 text-slate-400 font-medium text-sm">Prednasky</th>
+                  <th className="text-left py-4 px-4 text-slate-400 font-medium text-sm">Registracia</th>
+                  <th className="text-right py-4 px-4 text-slate-400 font-medium text-sm">Akcie</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredAttendees.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="py-8 text-center text-gray-500">
+                    <td colSpan={7} className="py-12 text-center text-slate-500">
                       {search ? 'Ziadne vysledky' : 'Ziadni ucastnici'}
                     </td>
                   </tr>
                 ) : (
                   filteredAttendees.map((attendee) => (
-                    <tr key={attendee.id} className="border-b border-gray-800/50 hover:bg-surface-light/50">
+                    <tr key={attendee.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="py-3 px-4 text-white font-medium">{attendee.name}</td>
-                      <td className="py-3 px-4 text-gray-400">{attendee.email}</td>
+                      <td className="py-3 px-4 text-slate-400">{attendee.email}</td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-1 bg-primary/20 text-primary rounded text-xs">
+                        <span className="px-2.5 py-1 bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-medium">
                           {getTypeLabel(attendee.attendee_type)}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-gray-400">{attendee.school_or_company || '-'}</td>
+                      <td className="py-3 px-4 text-slate-400">{attendee.school_or_company || '-'}</td>
                       <td className="py-3 px-4 text-center">
-                        <span className="font-medium">{attendee.sessions_count}</span>
-                        <span className="text-gray-500">/7</span>
+                        <span className="font-medium text-white">{attendee.sessions_count}</span>
+                        <span className="text-slate-500">/7</span>
                       </td>
-                      <td className="py-3 px-4 text-gray-500 text-sm">
+                      <td className="py-3 px-4 text-slate-500 text-sm">
                         {new Date(attendee.created_at).toLocaleDateString('sk-SK')}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <button
                           onClick={() => handleDelete(attendee.id, attendee.name)}
                           disabled={deleting === attendee.id}
-                          className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                          className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-50 text-sm"
                         >
                           {deleting === attendee.id ? '...' : 'Vymazat'}
                         </button>

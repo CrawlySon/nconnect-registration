@@ -3,109 +3,179 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: #0A1628;
-  --color-surface: #111827;
-  --color-secondary: #1E3A5F;
-  --color-accent: #00D4FF;
-  --color-highlight: #FF6B35;
-  --color-muted: #94A3B8;
-  --color-ai-stage: #FF6B35;
-  --color-softdev-stage: #EF4444;
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--color-primary);
-  color: white;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: linear-gradient(135deg, #0c0a1d 0%, #1a1333 50%, #0f172a 100%);
+  color: #e2e8f0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Glass effect base */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Inputs - ensure proper contrast */
+input, textarea, select {
+  color: #f1f5f9 !important;
+  background: rgba(15, 23, 42, 0.8) !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #64748b !important;
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-gradient-to-r from-highlight to-orange-500 text-white font-semibold py-3 px-6 rounded-lg transition-all hover:opacity-90 hover:scale-[1.02] active:scale-[0.98];
+    @apply relative overflow-hidden px-6 py-3 rounded-xl font-semibold text-white;
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.4);
+    transition: all 0.3s ease;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
+  }
+
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
+    transform: none;
   }
 
   .btn-secondary {
-    @apply bg-surface border border-secondary text-white font-medium py-2 px-4 rounded-lg transition-all hover:bg-secondary/50;
+    @apply px-5 py-2.5 rounded-xl font-medium text-slate-200;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.3s ease;
   }
 
-  .input-field {
-    @apply w-full bg-surface border border-secondary rounded-lg px-4 py-3 text-white placeholder-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all;
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .input {
+    @apply w-full px-4 py-3 rounded-xl text-slate-100;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .input:focus {
+    @apply outline-none;
+    border-color: rgba(6, 182, 212, 0.5);
+    box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+  }
+
+  .input::placeholder {
+    @apply text-slate-500;
   }
 
   .card {
-    @apply bg-surface border border-secondary/30 rounded-xl p-6;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    @apply rounded-2xl p-6;
   }
 
-  .session-card {
-    @apply bg-surface border border-secondary/30 rounded-xl p-4 transition-all hover:border-secondary/60;
+  .card-hover {
+    transition: all 0.3s ease;
   }
 
-  .session-card.registered {
-    @apply border-green-500/50 bg-green-500/5;
-  }
-
-  .session-card.full {
-    @apply opacity-60;
-  }
-
-  .session-card.conflict {
-    @apply opacity-50;
-  }
-
-  .stage-badge {
-    @apply px-3 py-1 rounded-full text-xs font-semibold;
-  }
-
-  .capacity-bar {
-    @apply h-2 bg-secondary/30 rounded-full overflow-hidden;
-  }
-
-  .capacity-fill {
-    @apply h-full bg-accent rounded-full transition-all;
-  }
-
-  .capacity-fill.warning {
-    @apply bg-yellow-500;
-  }
-
-  .capacity-fill.full {
-    @apply bg-red-500;
-  }
-
-  .toast {
-    @apply fixed top-4 right-4 z-50 bg-surface border border-secondary/50 rounded-lg p-4 shadow-xl animate-slide-in;
-  }
-
-  .toast.success {
-    @apply border-green-500/50;
-  }
-
-  .toast.error {
-    @apply border-red-500/50;
-  }
-
-  .checkbox-field {
-    @apply w-5 h-5 rounded border-2 border-secondary bg-surface checked:bg-accent checked:border-accent focus:ring-accent focus:ring-offset-0 cursor-pointer;
+  .card-hover:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
   }
 }
 
-@layer utilities {
-  .text-gradient {
-    @apply bg-gradient-to-r from-accent to-highlight bg-clip-text text-transparent;
-  }
+/* Gradient orbs for background decoration */
+.bg-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.3;
+  pointer-events: none;
+  z-index: 0;
 }
 
-@keyframes slide-in {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+.bg-orb-1 {
+  width: 400px;
+  height: 400px;
+  background: #f97316;
+  top: -100px;
+  right: -100px;
 }
 
-.animate-slide-in {
-  animation: slide-in 0.3s ease-out;
+.bg-orb-2 {
+  width: 300px;
+  height: 300px;
+  background: #06b6d4;
+  bottom: -50px;
+  left: -50px;
+}
+
+.bg-orb-3 {
+  width: 250px;
+  height: 250px;
+  background: #8b5cf6;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(249, 115, 22, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(249, 115, 22, 0.5); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }
