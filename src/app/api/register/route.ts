@@ -3,22 +3,20 @@ import { createServerClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email';
 import { TOTAL_SESSIONS } from '@/lib/constants';
 
-export const dynamic = 'force-dynamic';
-
 export async function POST(request: NextRequest) {
   try {
-    const { email, name, company } = await request.json();
+    const { email, name, attendee_type, school_or_company } = await request.json();
 
-    if (!email || !name) {
+    if (!email || !name || !attendee_type) {
       return NextResponse.json(
-        { error: 'Email a meno sú povinné' },
+        { error: 'Email, meno a typ ucastnika su povinne' },
         { status: 400 }
       );
     }
 
     const supabase = createServerClient();
 
-    // Check if attendee already exists
+    // Check if already exists
     const { data: existing } = await supabase
       .from('attendees')
       .select('id')
@@ -26,11 +24,11 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existing) {
-      // Return existing attendee
       return NextResponse.json({
         success: true,
         attendeeId: existing.id,
-        message: 'Účet už existuje',
+        message: 'Ucet uz existuje',
+        isExisting: true,
       });
     }
 
@@ -40,7 +38,8 @@ export async function POST(request: NextRequest) {
       .insert({
         email: email.toLowerCase(),
         name,
-        company: company || null,
+        attendee_type,
+        school_or_company: school_or_company || null,
       })
       .select()
       .single();
@@ -48,12 +47,12 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Registration error:', error);
       return NextResponse.json(
-        { error: 'Registrácia zlyhala. Skús to znova.' },
+        { error: 'Registracia zlyhala' },
         { status: 500 }
       );
     }
 
-    // Initialize 14 attendee_sessions records (all unregistered)
+    // Create 14 attendee_sessions records
     const attendeeSessions = [];
     for (let sessionId = 1; sessionId <= TOTAL_SESSIONS; sessionId++) {
       attendeeSessions.push({
@@ -63,14 +62,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { error: sessionsError } = await supabase
-      .from('attendee_sessions')
-      .insert(attendeeSessions);
-
-    if (sessionsError) {
-      console.error('Failed to initialize attendee sessions:', sessionsError);
-      // Continue anyway - they can be created later
-    }
+    await supabase.from('attendee_sessions').insert(attendeeSessions);
 
     // Send welcome email
     try {
@@ -79,21 +71,21 @@ export async function POST(request: NextRequest) {
         attendeeName: name,
         type: 'registration',
         sessions: [],
+        attendeeId: attendee.id,
       });
     } catch (emailError) {
-      console.error('Email send error:', emailError);
-      // Don't fail registration if email fails
+      console.error('Email error:', emailError);
     }
 
     return NextResponse.json({
       success: true,
       attendeeId: attendee.id,
-      message: 'Registrácia úspešná',
+      message: 'Registracia uspesna',
     });
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json(
-      { error: 'Interná chyba servera' },
+      { error: 'Interna chyba servera' },
       { status: 500 }
     );
   }

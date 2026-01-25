@@ -3,125 +3,70 @@ import { createServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-interface RegistrationWithSession {
-  id: string;
-  registered_at: string;
-  session: {
-    id: string;
-    title: string;
-    stage_id: string;
-  } | null;
-}
-
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerClient();
-    const searchParams = request.nextUrl.searchParams;
-
+    const { searchParams } = new URL(request.url);
     const stageId = searchParams.get('stage');
     const sessionId = searchParams.get('session');
 
-    // Get all stages
-    const { data: stages } = await supabase
-      .from('stages')
-      .select('*')
-      .order('name');
+    const supabase = createServerClient();
 
-    // Get all sessions
-    const { data: allSessions } = await supabase
-      .from('sessions')
-      .select('id, title, stage_id, registered_count, capacity')
-      .eq('is_active', true)
-      .order('registered_count', { ascending: false });
-
-    // Build registrations query with optional filters
-    const { data: registrations, error: regError } = await supabase
-      .from('registrations')
+    // Build query for registrations
+    let query = supabase
+      .from('attendee_sessions')
       .select(`
-        id,
         registered_at,
-        session:sessions!inner (
-          id,
-          title,
-          stage_id
-        )
-      `);
+        session_id,
+        sessions!inner(stage_id)
+      `)
+      .eq('is_registered', true)
+      .not('registered_at', 'is', null);
 
-    if (regError) throw regError;
-
-    // Cast to proper type
-    const typedRegistrations = (registrations || []) as unknown as RegistrationWithSession[];
-
-    // Filter registrations based on stage/session
-    let filteredRegistrations = typedRegistrations;
-    if (stageId) {
-      filteredRegistrations = filteredRegistrations.filter(
-        r => r.session?.stage_id === stageId
-      );
-    }
     if (sessionId) {
-      filteredRegistrations = filteredRegistrations.filter(
-        r => r.session?.id === sessionId
+      query = query.eq('session_id', parseInt(sessionId));
+    } else if (stageId) {
+      query = query.eq('sessions.stage_id', stageId);
+    }
+
+    const { data: registrations, error } = await query;
+
+    if (error) {
+      console.error('Analytics fetch error:', error);
+      return NextResponse.json(
+        { error: 'Nepodarilo sa nacitat analytiku' },
+        { status: 500 }
       );
     }
 
-    // Group registrations by day
-    const registrationsByDay: Record<string, number> = {};
-    filteredRegistrations.forEach(reg => {
-      const date = new Date(reg.registered_at).toISOString().split('T')[0];
-      registrationsByDay[date] = (registrationsByDay[date] || 0) + 1;
+    // Group by date
+    const dateMap: Record<string, number> = {};
+    registrations?.forEach((r) => {
+      if (r.registered_at) {
+        const date = r.registered_at.split('T')[0];
+        dateMap[date] = (dateMap[date] || 0) + 1;
+      }
     });
 
-    // Convert to array and sort
-    const dailyRegistrations = Object.entries(registrationsByDay)
+    // Convert to array sorted by date
+    const chartData = Object.entries(dateMap)
       .map(([date, count]) => ({ date, count }))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Get top sessions
-    const topSessions = (allSessions || [])
-      .slice(0, 10)
-      .map(s => ({
-        id: s.id,
-        title: s.title,
-        registered: s.registered_count,
-        capacity: s.capacity,
-        fillRate: Math.round((s.registered_count / s.capacity) * 100),
-      }));
-
-    // Calculate overall stats
-    const totalAttendees = new Set(filteredRegistrations.map(r => r.id)).size;
-    const totalRegistrations = filteredRegistrations.length;
-
-    // Calculate average sessions per attendee (from all registrations)
-    const { count: uniqueAttendees } = await supabase
+    // Get total stats
+    const { count: totalAttendees } = await supabase
       .from('attendees')
       .select('*', { count: 'exact', head: true });
 
-    const { count: allRegistrationsCount } = await supabase
-      .from('registrations')
-      .select('*', { count: 'exact', head: true });
-
-    const avgSessionsPerAttendee = uniqueAttendees && uniqueAttendees > 0
-      ? (allRegistrationsCount || 0) / uniqueAttendees
-      : 0;
-
-    // Get sessions for filter dropdown (filtered by stage if selected)
-    let sessionsForFilter = allSessions || [];
-    if (stageId) {
-      sessionsForFilter = sessionsForFilter.filter(s => s.stage_id === stageId);
-    }
+    const { count: totalRegistrations } = await supabase
+      .from('attendee_sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_registered', true);
 
     return NextResponse.json({
-      success: true,
-      dailyRegistrations,
-      topSessions,
-      stages: stages || [],
-      sessions: sessionsForFilter.map(s => ({ id: s.id, title: s.title })),
+      chartData,
       stats: {
-        totalAttendees: uniqueAttendees || 0,
-        totalRegistrations: allRegistrationsCount || 0,
-        filteredRegistrations: totalRegistrations,
-        avgSessionsPerAttendee: Math.round(avgSessionsPerAttendee * 10) / 10,
+        totalAttendees: totalAttendees || 0,
+        totalRegistrations: totalRegistrations || 0,
       },
     });
   } catch (error) {

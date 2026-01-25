@@ -2,95 +2,67 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email';
 
-export const dynamic = 'force-dynamic';
-
-// Toggle registration for a session
 export async function POST(request: NextRequest) {
   try {
     const { attendeeId, sessionId, register } = await request.json();
 
-    if (!attendeeId || sessionId === undefined || typeof register !== 'boolean') {
+    if (!attendeeId || !sessionId || typeof register !== 'boolean') {
       return NextResponse.json(
-        { error: 'Chýbajú povinné parametre' },
+        { error: 'Chybaju povinne parametre' },
         { status: 400 }
       );
     }
 
     const supabase = createServerClient();
 
-    // Get attendee
-    const { data: attendee, error: attendeeError } = await supabase
-      .from('attendees')
-      .select('*')
-      .eq('id', attendeeId)
-      .single();
-
-    if (attendeeError || !attendee) {
-      return NextResponse.json(
-        { error: 'Účastník nebol nájdený' },
-        { status: 404 }
-      );
-    }
-
-    // Get session with slot_index
+    // Get session info
     const { data: session, error: sessionError } = await supabase
       .from('sessions')
-      .select('*, stage:stages(*)')
+      .select('slot_index, capacity')
       .eq('id', sessionId)
       .single();
 
     if (sessionError || !session) {
       return NextResponse.json(
-        { error: 'Prednáška nebola nájdená' },
+        { error: 'Prednaska neexistuje' },
         { status: 404 }
       );
     }
 
     if (register) {
       // Check capacity
-      const { count: registeredCount } = await supabase
+      const { count } = await supabase
         .from('attendee_sessions')
         .select('*', { count: 'exact', head: true })
         .eq('session_id', sessionId)
         .eq('is_registered', true);
 
-      if ((registeredCount || 0) >= session.capacity) {
+      if (count !== null && count >= session.capacity) {
         return NextResponse.json(
-          { error: 'Prednáška je už plne obsadená' },
+          { error: 'Prednaska je plna' },
           { status: 400 }
         );
       }
 
-      // Check for time conflict (same slot_index)
-      const { data: attendeeSessions } = await supabase
+      // Check for conflict in same slot
+      const { data: conflict } = await supabase
         .from('attendee_sessions')
-        .select('session_id')
+        .select('session_id, sessions!inner(slot_index)')
         .eq('attendee_id', attendeeId)
-        .eq('is_registered', true);
+        .eq('is_registered', true)
+        .eq('sessions.slot_index', session.slot_index)
+        .neq('session_id', sessionId)
+        .single();
 
-      if (attendeeSessions && attendeeSessions.length > 0) {
-        const registeredSessionIds = attendeeSessions.map(as => as.session_id);
-
-        // Get sessions to check their slot_index
-        const { data: registeredSessions } = await supabase
-          .from('sessions')
-          .select('id, slot_index')
-          .in('id', registeredSessionIds);
-
-        const hasConflict = registeredSessions?.some(
-          rs => rs.slot_index === session.slot_index && rs.id !== sessionId
+      if (conflict) {
+        return NextResponse.json(
+          { error: 'V tomto case mas uz inu prednasku' },
+          { status: 400 }
         );
-
-        if (hasConflict) {
-          return NextResponse.json(
-            { error: 'Máš už prihlásenú inú prednášku v tomto čase' },
-            { status: 400 }
-          );
-        }
       }
     }
 
-    // Update registration status
+    // Update registration
     const { error: updateError } = await supabase
       .from('attendee_sessions')
       .update({
@@ -103,51 +75,48 @@ export async function POST(request: NextRequest) {
     if (updateError) {
       console.error('Registration update error:', updateError);
       return NextResponse.json(
-        { error: 'Nepodarilo sa aktualizovať registráciu' },
+        { error: 'Nepodarilo sa aktualizovat registraciu' },
         { status: 500 }
       );
     }
 
-    // Get all registered sessions for email
-    const { data: registeredSessions } = await supabase
-      .from('attendee_sessions')
-      .select('session_id')
-      .eq('attendee_id', attendeeId)
-      .eq('is_registered', true);
-
-    const registeredIds = registeredSessions?.map(r => r.session_id) || [];
-
-    let allSessions: any[] = [];
-    if (registeredIds.length > 0) {
-      const { data: sessionsData } = await supabase
-        .from('sessions')
-        .select('*, stage:stages(*)')
-        .in('id', registeredIds);
-      allSessions = sessionsData || [];
-    }
-
-    // Send email notification
+    // Send email with updated sessions
     try {
-      await sendEmail({
-        to: attendee.email,
-        attendeeName: attendee.name,
-        type: register ? 'session_added' : 'session_removed',
-        sessions: allSessions,
-        changedSession: session,
-      });
+      const { data: attendee } = await supabase
+        .from('attendees')
+        .select('email, name')
+        .eq('id', attendeeId)
+        .single();
+
+      if (attendee) {
+        const { data: registeredSessions } = await supabase
+          .from('attendee_sessions')
+          .select('sessions(*, stage:stages(*))')
+          .eq('attendee_id', attendeeId)
+          .eq('is_registered', true);
+
+        const sessions = registeredSessions?.map((r) => r.sessions).filter(Boolean) || [];
+
+        await sendEmail({
+          to: attendee.email,
+          attendeeName: attendee.name,
+          type: 'sessions_updated',
+          sessions: sessions as any[],
+          attendeeId,
+        });
+      }
     } catch (emailError) {
-      console.error('Email send error:', emailError);
+      console.error('Email error:', emailError);
     }
 
     return NextResponse.json({
       success: true,
-      message: register ? 'Prihlásenie úspešné' : 'Odhlásenie úspešné',
-      is_registered: register,
+      message: register ? 'Registracia uspesna' : 'Odhlasenie uspesne',
     });
   } catch (error) {
-    console.error('Registration toggle error:', error);
+    console.error('Registration error:', error);
     return NextResponse.json(
-      { error: 'Interná chyba servera' },
+      { error: 'Interna chyba servera' },
       { status: 500 }
     );
   }

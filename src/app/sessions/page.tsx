@@ -1,61 +1,47 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import {
-  Clock, Users, CheckCircle2, AlertCircle,
-  XCircle, Loader2, User, Building
-} from 'lucide-react';
-import { SessionWithStatus, Stage, Attendee, TimeSlot } from '@/types';
+import { SessionWithStatus } from '@/types';
+import { TIME_SLOTS, STAGES, CONFERENCE } from '@/lib/constants';
 
 function SessionsContent() {
   const searchParams = useSearchParams();
   const attendeeId = searchParams.get('attendee');
 
   const [sessions, setSessions] = useState<SessionWithStatus[]>([]);
-  const [stages, setStages] = useState<Stage[]>([]);
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
-  const [attendee, setAttendee] = useState<Attendee | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [savingSessionId, setSavingSessionId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  const showToast = (message: string, type: 'success' | 'error') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
-  };
-
-  const loadData = useCallback(async () => {
+  const fetchSessions = useCallback(async () => {
     if (!attendeeId) return;
 
     try {
-      const response = await fetch(`/api/sessions?attendee=${attendeeId}`);
-      const data = await response.json();
+      const res = await fetch(`/api/sessions?attendee=${attendeeId}`);
+      const data = await res.json();
 
-      if (!response.ok) throw new Error(data.error);
+      if (!res.ok) {
+        throw new Error(data.error || 'Nepodarilo sa nacitat prednasky');
+      }
 
       setSessions(data.sessions);
-      setStages(data.stages);
-      setTimeSlots(data.timeSlots);
-      setAttendee(data.attendee);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nepodarilo sa načítať dáta');
+      setError(err instanceof Error ? err.message : 'Nieco sa pokazilo');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   }, [attendeeId]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    fetchSessions();
+  }, [fetchSessions]);
 
   const handleToggleRegistration = async (sessionId: number, currentlyRegistered: boolean) => {
-    setSavingSessionId(sessionId);
+    setActionLoading(sessionId);
 
     try {
-      const response = await fetch('/api/registrations', {
+      const res = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -65,297 +51,239 @@ function SessionsContent() {
         }),
       });
 
-      const data = await response.json();
+      const data = await res.json();
 
-      if (!response.ok) throw new Error(data.error);
+      if (!res.ok) {
+        throw new Error(data.error || 'Akcia zlyhala');
+      }
 
-      showToast(data.message, 'success');
-      await loadData(); // Reload to get updated counts and conflict states
+      await fetchSessions();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Operácia zlyhala', 'error');
+      alert(err instanceof Error ? err.message : 'Nieco sa pokazilo');
     } finally {
-      setSavingSessionId(null);
+      setActionLoading(null);
     }
   };
 
   if (!attendeeId) {
     return (
-      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-white mb-2">Chýba identifikácia</h1>
-          <p className="text-nconnect-muted mb-4">Pre prístup k tejto stránke sa musíš najprv zaregistrovať.</p>
-          <a href="/" className="btn-primary inline-flex items-center">
-            Zaregistrovať sa
+      <div className="min-h-screen bg-surface-dark flex items-center justify-center p-4">
+        <div className="card text-center">
+          <h1 className="text-2xl font-bold mb-4">Chyba</h1>
+          <p className="text-gray-400 mb-6">Chyba identifikacie ucastnika.</p>
+          <a href="/" className="btn-primary inline-block">
+            Spat na registraciu
           </a>
         </div>
       </div>
     );
   }
 
-  if (isLoading) {
+  if (loading) {
     return (
-      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-nconnect-accent animate-spin" />
+      <div className="min-h-screen bg-surface-dark flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-400">Nacitavam prednasky...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
-        <div className="text-center">
-          <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-white mb-2">Chyba</h1>
-          <p className="text-nconnect-muted mb-4">{error}</p>
-          <a href="/" className="btn-primary inline-flex items-center">
-            Späť na úvod
-          </a>
+      <div className="min-h-screen bg-surface-dark flex items-center justify-center p-4">
+        <div className="card text-center">
+          <h1 className="text-2xl font-bold mb-4 text-red-400">Chyba</h1>
+          <p className="text-gray-400 mb-6">{error}</p>
+          <button onClick={() => window.location.reload()} className="btn-primary">
+            Skusit znova
+          </button>
         </div>
       </div>
     );
   }
 
-  // Group sessions by slot_index
-  const sessionsBySlot: Record<number, SessionWithStatus[]> = {};
-  sessions.forEach(session => {
-    if (!sessionsBySlot[session.slot_index]) {
-      sessionsBySlot[session.slot_index] = [];
-    }
-    sessionsBySlot[session.slot_index].push(session);
-  });
+  const aiDataSessions = sessions.filter((s) => s.stage_id === STAGES.AI_DATA.id);
+  const softdevSessions = sessions.filter((s) => s.stage_id === STAGES.SOFTDEV_CYBER.id);
 
-  // Sort stages for consistent column order
-  const sortedStages = [...stages].sort((a, b) => a.id.localeCompare(b.id));
-
-  const registeredSessions = sessions.filter(s => s.is_registered);
+  const registeredCount = sessions.filter((s) => s.is_registered).length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {toast && (
-        <div className={`toast ${toast.type}`}>
-          <div className="flex items-center gap-3">
-            {toast.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5 text-green-400" />
-            ) : (
-              <XCircle className="w-5 h-5 text-red-400" />
-            )}
-            <p className="text-white">{toast.message}</p>
+    <div className="min-h-screen bg-surface-dark">
+      {/* Header */}
+      <header className="bg-surface-light border-b border-gray-800 py-6 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold">
+                <span className="text-primary">nConnect</span>
+                <span className="text-ai-stage">26</span>
+                <span className="text-gray-400 text-lg ml-2">- Vyber prednasok</span>
+              </h1>
+              <p className="text-gray-400 text-sm mt-1">{CONFERENCE.DATE_DISPLAY} | {CONFERENCE.VENUE}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-gray-400">
+                Vybranych: <span className="text-white font-semibold">{registeredCount}</span> / 7
+              </span>
+            </div>
           </div>
         </div>
-      )}
+      </header>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-display font-bold text-white mb-2">
-          Výber prednášok
-        </h1>
-        <p className="text-nconnect-muted">
-          Vyber si jednu prednášku z každého časového bloku. Zmeny sa ukladajú okamžite.
-        </p>
-      </div>
-
-      <div className="grid lg:grid-cols-4 gap-8">
-        <div className="lg:col-span-3 space-y-6">
-          {/* Stage headers */}
-          <div className="grid grid-cols-[120px_1fr_1fr] gap-4 mb-2">
-            <div></div>
-            {sortedStages.map(stage => (
-              <div key={stage.id} className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: stage.color }} />
-                <span className="text-sm font-medium text-white">{stage.name}</span>
-              </div>
-            ))}
+      {/* Schedule Grid */}
+      <main className="max-w-7xl mx-auto py-8 px-4">
+        {/* Stage Headers */}
+        <div className="grid grid-cols-1 md:grid-cols-[100px_1fr_1fr] gap-4 mb-4">
+          <div></div>
+          <div className="text-center">
+            <span
+              className="inline-block px-4 py-2 rounded-full font-semibold"
+              style={{ backgroundColor: STAGES.AI_DATA.color + '20', color: STAGES.AI_DATA.color }}
+            >
+              {STAGES.AI_DATA.name}
+            </span>
           </div>
-
-          {/* Time slots with sessions */}
-          {timeSlots.map((slot) => {
-            const slotSessions = sessionsBySlot[slot.index] || [];
-            // Sort by stage_id for consistent column order
-            slotSessions.sort((a, b) => a.stage_id.localeCompare(b.stage_id));
-
-            return (
-              <div key={slot.index} className="grid grid-cols-[120px_1fr_1fr] gap-4">
-                {/* Time label */}
-                <div className="flex items-start pt-4">
-                  <div className="flex items-center gap-2 bg-nconnect-surface px-3 py-2 rounded-lg">
-                    <Clock className="w-4 h-4 text-nconnect-accent" />
-                    <div className="text-sm">
-                      <div className="font-medium text-white">{slot.start}</div>
-                      <div className="text-nconnect-muted">{slot.end}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sessions for each stage */}
-                {sortedStages.map(stage => {
-                  const session = slotSessions.find(s => s.stage_id === stage.id);
-                  if (!session) return <div key={stage.id}></div>;
-
-                  const isSaving = savingSessionId === session.id;
-                  const canRegister = !session.is_full && !session.has_conflict;
-
-                  let cardClass = 'session-card';
-                  if (session.is_registered) cardClass += ' registered';
-                  else if (session.is_full) cardClass += ' full';
-                  else if (session.has_conflict) cardClass += ' conflict';
-
-                  return (
-                    <div key={session.id} className={cardClass}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span
-                          className="stage-badge text-xs"
-                          style={{ backgroundColor: `${stage.color}20`, color: stage.color }}
-                        >
-                          {stage.name}
-                        </span>
-
-                        {session.is_registered && (
-                          <span className="flex items-center gap-1 text-green-400 text-xs">
-                            <CheckCircle2 className="w-3 h-3" />Prihlásený
-                          </span>
-                        )}
-                        {!session.is_registered && session.is_full && (
-                          <span className="flex items-center gap-1 text-red-400 text-xs">
-                            <XCircle className="w-3 h-3" />Plné
-                          </span>
-                        )}
-                        {!session.is_registered && !session.is_full && session.has_conflict && (
-                          <span className="flex items-center gap-1 text-yellow-400 text-xs">
-                            <AlertCircle className="w-3 h-3" />Konflikt
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="text-base font-semibold text-white mb-1 line-clamp-2">
-                        {session.title}
-                      </h3>
-
-                      <div className="flex items-center gap-1 text-nconnect-muted text-sm mb-2">
-                        <User className="w-3 h-3" />
-                        <span>{session.speaker_name}</span>
-                        {session.speaker_company && (
-                          <>
-                            <span>•</span>
-                            <span>{session.speaker_company}</span>
-                          </>
-                        )}
-                      </div>
-
-                      {session.description && (
-                        <p className="text-nconnect-muted text-xs mb-3 line-clamp-2">
-                          {session.description}
-                        </p>
-                      )}
-
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="text-nconnect-muted flex items-center gap-1">
-                            <Users className="w-3 h-3" />
-                            Kapacita
-                          </span>
-                          <span className="text-white">{session.registered_count}/{session.capacity}</span>
-                        </div>
-                        <div className="capacity-bar">
-                          <div
-                            className={`capacity-fill ${session.is_full ? 'full' : session.registered_count >= session.capacity * 0.8 ? 'warning' : ''}`}
-                            style={{ width: `${Math.min(100, (session.registered_count / session.capacity) * 100)}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleToggleRegistration(session.id, session.is_registered)}
-                        disabled={(!session.is_registered && !canRegister) || isSaving}
-                        className={`w-full py-2 px-3 rounded-lg font-medium text-sm transition-all flex items-center justify-center gap-2 ${
-                          session.is_registered
-                            ? 'bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30'
-                            : canRegister
-                              ? 'bg-nconnect-accent/10 text-nconnect-accent border border-nconnect-accent/30 hover:bg-nconnect-accent/20'
-                              : 'bg-nconnect-secondary/20 text-nconnect-muted cursor-not-allowed'
-                        }`}
-                      >
-                        {isSaving ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : session.is_registered ? (
-                          'Odhlásiť sa'
-                        ) : canRegister ? (
-                          'Prihlásiť sa'
-                        ) : session.is_full ? (
-                          'Plná kapacita'
-                        ) : (
-                          'Časový konflikt'
-                        )}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+          <div className="text-center">
+            <span
+              className="inline-block px-4 py-2 rounded-full font-semibold"
+              style={{ backgroundColor: STAGES.SOFTDEV_CYBER.color + '20', color: STAGES.SOFTDEV_CYBER.color }}
+            >
+              {STAGES.SOFTDEV_CYBER.name}
+            </span>
+          </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 space-y-6">
-            {attendee && (
-              <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl p-5">
-                <h3 className="font-semibold text-white mb-3">Tvoj profil</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-nconnect-muted">
-                    <User className="w-4 h-4" /><span>{attendee.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-nconnect-muted">
-                    <span className="w-4 h-4 flex items-center justify-center">@</span>
-                    <span>{attendee.email}</span>
-                  </div>
-                  {attendee.company && (
-                    <div className="flex items-center gap-2 text-nconnect-muted">
-                      <Building className="w-4 h-4" /><span>{attendee.company}</span>
-                    </div>
-                  )}
+        {/* Time Slots */}
+        {TIME_SLOTS.map((slot) => {
+          const aiSession = aiDataSessions.find((s) => s.slot_index === slot.index);
+          const softdevSession = softdevSessions.find((s) => s.slot_index === slot.index);
+
+          return (
+            <div key={slot.index} className="grid grid-cols-1 md:grid-cols-[100px_1fr_1fr] gap-4 mb-4">
+              {/* Time */}
+              <div className="flex items-center justify-center md:justify-end">
+                <div className="text-center md:text-right">
+                  <div className="text-white font-medium">{slot.start}</div>
+                  <div className="text-gray-500 text-sm">{slot.end}</div>
                 </div>
               </div>
-            )}
 
-            <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl p-5">
-              <h3 className="font-semibold text-white mb-3">
-                Tvoje prednášky ({registeredSessions.length}/7)
-              </h3>
+              {/* AI & Data Session */}
+              {aiSession && (
+                <SessionCard
+                  session={aiSession}
+                  onToggle={() => handleToggleRegistration(aiSession.id, aiSession.is_registered)}
+                  isLoading={actionLoading === aiSession.id}
+                />
+              )}
 
-              {registeredSessions.length === 0 ? (
-                <p className="text-nconnect-muted text-sm">Zatiaľ nemáš vybrané žiadne prednášky.</p>
-              ) : (
-                <div className="space-y-3">
-                  {registeredSessions
-                    .sort((a, b) => a.slot_index - b.slot_index)
-                    .map(session => {
-                      const stage = stages.find(s => s.id === session.stage_id);
-                      const slot = timeSlots[session.slot_index];
-                      return (
-                        <div key={session.id} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
-                          <div className="flex items-center gap-2 text-xs text-green-400 mb-1">
-                            <Clock className="w-3 h-3" />
-                            <span>{slot?.start}</span>
-                            <span>•</span>
-                            <span style={{ color: stage?.color }}>{stage?.name}</span>
-                          </div>
-                          <p className="text-white text-sm font-medium line-clamp-2">{session.title}</p>
-                          <p className="text-nconnect-muted text-xs mt-1">{session.speaker_name}</p>
-                        </div>
-                      );
-                    })}
-                </div>
+              {/* SoftDev Session */}
+              {softdevSession && (
+                <SessionCard
+                  session={softdevSession}
+                  onToggle={() => handleToggleRegistration(softdevSession.id, softdevSession.is_registered)}
+                  isLoading={actionLoading === softdevSession.id}
+                />
               )}
             </div>
+          );
+        })}
 
-            <div className="bg-nconnect-accent/5 border border-nconnect-accent/20 rounded-xl p-5">
-              <h4 className="font-medium text-nconnect-accent mb-2">💡 Tip</h4>
-              <p className="text-nconnect-muted text-sm">
-                V každom časovom bloku môžeš mať prihlásenú len jednu prednášku.
-                Zmeny sa ukladajú automaticky.
-              </p>
-            </div>
+        {/* Legend */}
+        <div className="mt-12 flex flex-wrap justify-center gap-6 text-sm text-gray-400">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-green-500/20 border border-green-500"></div>
+            <span>Registrovany</span>
           </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-yellow-500/20 border border-yellow-500"></div>
+            <span>Konflikt</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-red-500/20 border border-red-500"></div>
+            <span>Plne</span>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function SessionCard({
+  session,
+  onToggle,
+  isLoading,
+}: {
+  session: SessionWithStatus;
+  onToggle: () => void;
+  isLoading: boolean;
+}) {
+  const stageColor = session.stage?.color || '#666';
+
+  let borderColor = 'border-gray-700';
+  let bgColor = 'bg-surface-light';
+
+  if (session.is_registered) {
+    borderColor = 'border-green-500';
+    bgColor = 'bg-green-500/10';
+  } else if (session.has_conflict) {
+    borderColor = 'border-yellow-500';
+    bgColor = 'bg-yellow-500/5';
+  } else if (session.is_full) {
+    borderColor = 'border-red-500';
+    bgColor = 'bg-red-500/5';
+  }
+
+  const isDisabled = isLoading || (!session.is_registered && (session.is_full || session.has_conflict));
+
+  return (
+    <div
+      className={`${bgColor} border ${borderColor} rounded-xl p-4 transition-all`}
+      style={{ borderLeftWidth: '4px', borderLeftColor: stageColor }}
+    >
+      <div className="flex flex-col h-full">
+        <h3 className="font-semibold text-white mb-1">{session.title}</h3>
+        <p className="text-sm text-gray-400 mb-2">
+          {session.speaker_name}
+          {session.speaker_company && ` - ${session.speaker_company}`}
+        </p>
+
+        {session.description && (
+          <p className="text-xs text-gray-500 mb-3 line-clamp-2">{session.description}</p>
+        )}
+
+        <div className="mt-auto flex items-center justify-between">
+          <span className="text-xs text-gray-500">
+            {session.registered_count}/{session.capacity} miest
+          </span>
+
+          <button
+            onClick={onToggle}
+            disabled={isDisabled}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              session.is_registered
+                ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                : session.is_full
+                ? 'bg-red-500/20 text-red-400 cursor-not-allowed'
+                : session.has_conflict
+                ? 'bg-yellow-500/20 text-yellow-400 cursor-not-allowed'
+                : 'bg-primary/20 text-primary hover:bg-primary/30'
+            }`}
+          >
+            {isLoading ? (
+              '...'
+            ) : session.is_registered ? (
+              'Odhlasit'
+            ) : session.is_full ? (
+              'Plne'
+            ) : session.has_conflict ? (
+              'Konflikt'
+            ) : (
+              'Prihlasit'
+            )}
+          </button>
         </div>
       </div>
     </div>
@@ -365,8 +293,11 @@ function SessionsContent() {
 export default function SessionsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-nconnect-accent animate-spin" />
+      <div className="min-h-screen bg-surface-dark flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-400">Nacitavam...</p>
+        </div>
       </div>
     }>
       <SessionsContent />
