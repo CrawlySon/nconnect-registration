@@ -1,4 +1,14 @@
-// Fixed time slots for nConnect26 conference
+export const CONFERENCE_DATE = '2026-03-26';
+export const CONFERENCE_NAME = 'nConnect26';
+
+export const CONFERENCE = {
+  NAME: 'nConnect26',
+  DATE: '2026-03-26',
+  DATE_DISPLAY: '26. marca 2026',
+  VENUE: 'Studentske centrum UKF Nitra',
+  PARTNERS: ['GymBeam', 'Hra bez hranic', 'PowerPlay Studio'],
+} as const;
+
 export const TIME_SLOTS = [
   { index: 0, start: '09:00', end: '09:45' },
   { index: 1, start: '09:45', end: '10:30' },
@@ -9,34 +19,30 @@ export const TIME_SLOTS = [
   { index: 6, start: '14:30', end: '15:15' },
 ] as const;
 
-// Fixed stages
 export const STAGES = {
   AI_DATA: {
-    id: 'ai-data-stage',
-    name: 'AI & Data Stage',
-    color: '#00D4FF',
+    id: 'ai-data',
+    name: 'AI&Data Stage',
+    color: '#FF6B35',
   },
-  SOFT_DEV: {
-    id: 'soft-dev-stage',
-    name: 'Soft Dev Stage',
-    color: '#A855F7',
+  SOFTDEV_CYBER: {
+    id: 'softdev-cyber',
+    name: 'SoftDev&CyberSecurity Stage',
+    color: '#EF4444',
   },
 } as const;
 
-// Session ID mapping:
-// Sessions 1-7: AI & Data Stage (slot_index 0-6)
-// Sessions 8-14: Soft Dev Stage (slot_index 0-6)
-export const getSessionId = (slotIndex: number, stageIndex: number): number => {
-  return slotIndex + 1 + (stageIndex * 7);
-};
+export const ATTENDEE_TYPES = [
+  { value: 'student', label: 'Student' },
+  { value: 'employee', label: 'Zamestnanec' },
+  { value: 'entrepreneur', label: 'Podnikatel' },
+] as const;
 
-export const getSlotFromSessionId = (sessionId: number): { slotIndex: number; stageIndex: number } => {
-  if (sessionId <= 7) {
-    return { slotIndex: sessionId - 1, stageIndex: 0 };
-  }
-  return { slotIndex: sessionId - 8, stageIndex: 1 };
-};
-
-export const CONFERENCE_DATE = '2026-03-26';
+export const PARTNERS = [
+  { name: 'GymBeam', logo: '/partners/gymbeam.png' },
+  { name: 'Hra bez hranic', logo: '/partners/hrabezhrinic.png' },
+  { name: 'PowerPlay Studio', logo: '/partners/powerplay.png' },
+] as const;
 
 export const TOTAL_SESSIONS = 14;
+export const TOTAL_SLOTS = 7;

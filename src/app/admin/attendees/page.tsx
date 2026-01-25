@@ -1,227 +1,182 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { Attendee } from '@/types';
+import { ATTENDEE_TYPES } from '@/lib/constants';
 import Link from 'next/link';
-import {
-  Users, Search, Loader2, AlertCircle,
-  ArrowLeft, Mail, Building, Calendar,
-  ChevronRight, Trash2
-} from 'lucide-react';
 
-interface AttendeeWithCount {
-  id: string;
-  email: string;
-  name: string;
-  company?: string;
-  phone?: string;
-  created_at: string;
-  registration_count: number;
+interface AttendeeWithCount extends Attendee {
+  sessions_count: number;
 }
 
 export default function AdminAttendeesPage() {
-  const router = useRouter();
   const [attendees, setAttendees] = useState<AttendeeWithCount[]>([]);
-  const [filteredAttendees, setFilteredAttendees] = useState<AttendeeWithCount[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const isAuth = sessionStorage.getItem('admin_authenticated');
+    const isAuth = localStorage.getItem('adminAuth');
     if (isAuth !== 'true') {
-      router.push('/admin');
-      return;
+      window.location.href = '/admin';
     }
-    loadAttendees();
-  }, [router]);
+  }, []);
+
+  const fetchAttendees = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/attendees');
+      const data = await res.json();
+      if (res.ok) {
+        setAttendees(data.attendees);
+      }
+    } catch (err) {
+      console.error('Failed to fetch attendees:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredAttendees(attendees);
-    } else {
-      const query = searchQuery.toLowerCase();
-      setFilteredAttendees(
-        attendees.filter(a =>
-          a.name.toLowerCase().includes(query) ||
-          a.email.toLowerCase().includes(query) ||
-          (a.company && a.company.toLowerCase().includes(query))
-        )
-      );
-    }
-  }, [searchQuery, attendees]);
+    fetchAttendees();
+  }, [fetchAttendees]);
 
-  const loadAttendees = async () => {
-    try {
-      const response = await fetch('/api/admin/attendees');
-      const data = await response.json();
-
-      if (!response.ok) throw new Error(data.error);
-
-      setAttendees(data.attendees);
-      setFilteredAttendees(data.attendees);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nepodarilo sa načítať účastníkov');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDelete = async (attendeeId: string, attendeeName: string) => {
-    if (!confirm(`Naozaj chceš vymazať účastníka "${attendeeName}"? Táto akcia je nevratná a vymaže aj všetky jeho registrácie.`)) {
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Naozaj chces vymazat ucastnika "${name}"? Tato akcia je nevratna a vymaze aj vsetky jeho registracie.`)) {
       return;
     }
 
-    setDeletingId(attendeeId);
+    setDeleting(id);
+
     try {
-      const response = await fetch(`/api/admin/attendees/${attendeeId}`, {
+      const res = await fetch(`/api/admin/attendees?id=${id}`, {
         method: 'DELETE',
       });
 
-      const data = await response.json();
-
-      if (!response.ok) throw new Error(data.error);
-
-      // Remove from local state
-      setAttendees(prev => prev.filter(a => a.id !== attendeeId));
+      if (res.ok) {
+        setAttendees((prev) => prev.filter((a) => a.id !== id));
+      } else {
+        alert('Vymazanie zlyhalo');
+      }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Vymazanie zlyhalo');
+      console.error('Failed to delete attendee:', err);
+      alert('Vymazanie zlyhalo');
     } finally {
-      setDeletingId(null);
+      setDeleting(null);
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-nconnect-accent animate-spin" />
-      </div>
-    );
-  }
+  const getTypeLabel = (type: string) => {
+    const found = ATTENDEE_TYPES.find((t) => t.value === type);
+    return found?.label || type;
+  };
 
-  if (error) {
+  const filteredAttendees = attendees.filter((a) => {
+    const searchLower = search.toLowerCase();
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-white">{error}</p>
-        </div>
+      a.name.toLowerCase().includes(searchLower) ||
+      a.email.toLowerCase().includes(searchLower) ||
+      a.school_or_company?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-surface-dark flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-surface-dark">
       {/* Header */}
-      <div className="mb-8">
-        <Link
-          href="/admin/dashboard"
-          className="inline-flex items-center gap-2 text-nconnect-muted hover:text-white transition-colors mb-4"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Späť na dashboard
-        </Link>
-
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-display font-bold text-white">
-              Účastníci
-            </h1>
-            <p className="text-nconnect-muted mt-1">
-              {attendees.length} registrovaných účastníkov
-            </p>
+      <header className="bg-surface-light border-b border-gray-800 py-4 px-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/admin/dashboard" className="text-gray-400 hover:text-white transition-colors">
+              &larr; Dashboard
+            </Link>
+            <h1 className="text-xl font-bold">Ucastnici ({attendees.length})</h1>
           </div>
+          <a
+            href="/api/admin/export?type=attendees"
+            className="btn-secondary text-sm"
+            download
+          >
+            Export CSV
+          </a>
         </div>
-      </div>
+      </header>
 
-      {/* Search */}
-      <div className="mb-6">
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-nconnect-muted" />
+      <main className="max-w-7xl mx-auto py-8 px-4">
+        {/* Search */}
+        <div className="mb-6">
           <input
             type="text"
-            placeholder="Hľadať podľa mena, emailu alebo firmy..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-field pl-10 w-full"
+            className="input max-w-md"
+            placeholder="Hladat podla mena, emailu alebo firmy..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-      </div>
 
-      {/* Attendees list */}
-      <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl overflow-hidden">
-        {filteredAttendees.length === 0 ? (
-          <div className="p-8 text-center">
-            <Users className="w-12 h-12 text-nconnect-muted mx-auto mb-4" />
-            <p className="text-nconnect-muted">
-              {searchQuery ? 'Žiadni účastníci nezodpovedajú hľadaniu' : 'Zatiaľ žiadni účastníci'}
-            </p>
-          </div>
-        ) : (
-          <div className="divide-y divide-nconnect-secondary/30">
-            {filteredAttendees.map(attendee => (
-              <div
-                key={attendee.id}
-                className="p-4 hover:bg-nconnect-primary/30 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h3 className="text-white font-medium truncate">
-                        {attendee.name}
-                      </h3>
-                      <span className="px-2 py-0.5 bg-nconnect-accent/20 text-nconnect-accent text-xs rounded-full">
-                        {attendee.registration_count} prednášok
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-nconnect-muted">
-                      <span className="flex items-center gap-1">
-                        <Mail className="w-3.5 h-3.5" />
-                        {attendee.email}
-                      </span>
-                      {attendee.company && (
-                        <span className="flex items-center gap-1">
-                          <Building className="w-3.5 h-3.5" />
-                          {attendee.company}
+        {/* Table */}
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-800">
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Meno</th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Email</th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Typ</th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Skola/Firma</th>
+                  <th className="text-center py-3 px-4 text-gray-400 font-medium">Prednasky</th>
+                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Registracia</th>
+                  <th className="text-right py-3 px-4 text-gray-400 font-medium">Akcie</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAttendees.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-gray-500">
+                      {search ? 'Ziadne vysledky' : 'Ziadni ucastnici'}
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAttendees.map((attendee) => (
+                    <tr key={attendee.id} className="border-b border-gray-800/50 hover:bg-surface-light/50">
+                      <td className="py-3 px-4 text-white font-medium">{attendee.name}</td>
+                      <td className="py-3 px-4 text-gray-400">{attendee.email}</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-1 bg-primary/20 text-primary rounded text-xs">
+                          {getTypeLabel(attendee.attendee_type)}
                         </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" />
+                      </td>
+                      <td className="py-3 px-4 text-gray-400">{attendee.school_or_company || '-'}</td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="font-medium">{attendee.sessions_count}</span>
+                        <span className="text-gray-500">/7</span>
+                      </td>
+                      <td className="py-3 px-4 text-gray-500 text-sm">
                         {new Date(attendee.created_at).toLocaleDateString('sk-SK')}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 ml-4">
-                    <button
-                      onClick={() => handleDelete(attendee.id, attendee.name)}
-                      disabled={deletingId === attendee.id}
-                      className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors disabled:opacity-50"
-                      title="Vymazať účastníka"
-                    >
-                      {deletingId === attendee.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </button>
-
-                    <Link
-                      href={`/admin/attendees/${attendee.id}`}
-                      className="p-2 text-nconnect-muted hover:text-white hover:bg-nconnect-secondary/30 rounded-lg transition-colors"
-                      title="Detail a správa"
-                    >
-                      <ChevronRight className="w-5 h-5" />
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => handleDelete(attendee.id, attendee.name)}
+                          disabled={deleting === attendee.id}
+                          className="text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                        >
+                          {deleting === attendee.id ? '...' : 'Vymazat'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+        </div>
+      </main>
     </div>
   );
 }
