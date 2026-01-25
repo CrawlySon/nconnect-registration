@@ -89,9 +89,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const registeredIds = registrations?.map(r => r.session_id) || [];
-    console.log('[SESSIONS API] Registered IDs:', registeredIds);
-    
+    const allRegisteredIds = registrations?.map(r => r.session_id) || [];
+
+    // Filter registeredIds to only include active sessions (exclude deleted/inactive sessions)
+    const activeSessionIds = new Set(sessions?.map(s => s.id) || []);
+    const registeredIds = allRegisteredIds.filter(id => activeSessionIds.has(id));
+
+    console.log('[SESSIONS API] All Registered IDs:', allRegisteredIds);
+    console.log('[SESSIONS API] Active Registered IDs:', registeredIds);
+
     // Enrich sessions with availability info
     const enrichedSessions = enrichSessionsWithAvailability(sessions || [], registeredIds);
 

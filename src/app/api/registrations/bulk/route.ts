@@ -96,6 +96,15 @@ export async function POST(request: NextRequest) {
           );
         }
 
+        // Check if session is active
+        if (!session.is_active) {
+          console.error('Session is not active:', { sessionId });
+          return NextResponse.json(
+            { error: `Prednáška "${session.title}" už nie je dostupná` },
+            { status: 400 }
+          );
+        }
+
         if (session.registered_count >= session.capacity) {
           return NextResponse.json(
             { error: `Prednáška "${session.title}" je už plne obsadená` },

@@ -4,20 +4,28 @@ import { isEmailConfigured, sendEmail } from '@/lib/email';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const configured = isEmailConfigured();
+  try {
+    const configured = isEmailConfigured();
 
-  return NextResponse.json({
-    configured,
-    message: configured
-      ? 'Email je nakonfigurovany a pripraveny na odosielanie'
-      : 'Email nie je nakonfigurovany - chyba RESEND_API_KEY',
-    instructions: configured ? null : [
-      '1. Vytvor ucet na https://resend.com',
-      '2. Pridaj a over domenu nconnect.sk',
-      '3. Nastav RESEND_API_KEY v .env.local',
-      '4. Restartuj aplikaciu',
-    ],
-  });
+    return NextResponse.json({
+      configured,
+      message: configured
+        ? 'Email je nakonfigurovany a pripraveny na odosielanie'
+        : 'Email nie je nakonfigurovany - chyba RESEND_API_KEY',
+      instructions: configured ? null : [
+        '1. Vytvor ucet na https://resend.com',
+        '2. Pridaj a over domenu nconnect.sk',
+        '3. Nastav RESEND_API_KEY v .env.local',
+        '4. Restartuj aplikaciu',
+      ],
+    });
+  } catch (error) {
+    console.error('Email status check error:', error);
+    return NextResponse.json({
+      configured: false,
+      error: 'Failed to check email configuration',
+    }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
