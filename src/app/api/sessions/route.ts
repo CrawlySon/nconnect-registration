@@ -100,18 +100,7 @@ export async function GET(request: NextRequest) {
       };
     }) || [];
 
-    // Debug log
-    const registeredIds = Object.keys(registrationMap).map(Number);
-    console.log('Attendee:', attendeeId, 'Registered sessions:', registeredIds, 'Count map sample:', Object.entries(countMap).slice(0, 3));
-
-    return NextResponse.json({
-      sessions: sessionsWithStatus,
-      _debug: {
-        attendeeSessionsCount: attendeeSessions?.length,
-        registeredSessionIds: registeredIds,
-        totalCounts: counts?.length,
-      }
-    });
+    return NextResponse.json({ sessions: sessionsWithStatus });
   } catch (error) {
     console.error('Sessions error:', error);
     return NextResponse.json(

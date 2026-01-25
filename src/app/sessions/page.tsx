@@ -18,8 +18,12 @@ function SessionsContent() {
     if (!attendeeId) return;
 
     try {
-      const res = await fetch(`/api/sessions?attendee=${attendeeId}`, {
+      // Add timestamp to bypass any caching
+      const res = await fetch(`/api/sessions?attendee=${attendeeId}&_t=${Date.now()}`, {
         cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
       });
       const data = await res.json();
 
