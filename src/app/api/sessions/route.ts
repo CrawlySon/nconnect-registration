@@ -69,10 +69,12 @@ export async function GET(request: NextRequest) {
       countMap[c.session_id] = (countMap[c.session_id] || 0) + 1;
     });
 
-    // Create registration map
+    // Create registration map - only include sessions where is_registered is true
     const registrationMap: Record<number, boolean> = {};
     attendeeSessions?.forEach((as) => {
-      registrationMap[as.session_id] = as.is_registered;
+      if (as.is_registered) {
+        registrationMap[as.session_id] = true;
+      }
     });
 
     // Find which slots user is registered for
@@ -85,7 +87,7 @@ export async function GET(request: NextRequest) {
 
     // Build response with status
     const sessionsWithStatus: SessionWithStatus[] = sessions?.map((session) => {
-      const isRegistered = registrationMap[session.id] || false;
+      const isRegistered = registrationMap[session.id] === true;
       const registeredCount = countMap[session.id] || 0;
       const isFull = registeredCount >= session.capacity;
       const hasConflict = !isRegistered && registeredSlots.has(session.slot_index);
@@ -99,7 +101,18 @@ export async function GET(request: NextRequest) {
       };
     }) || [];
 
-    return NextResponse.json({ sessions: sessionsWithStatus });
+    // Debug log
+    const registeredIds = Object.keys(registrationMap).map(Number);
+    console.log('Attendee:', attendeeId, 'Registered sessions:', registeredIds, 'Count map sample:', Object.entries(countMap).slice(0, 3));
+
+    return NextResponse.json({
+      sessions: sessionsWithStatus,
+      _debug: {
+        attendeeSessionsCount: attendeeSessions?.length,
+        registeredSessionIds: registeredIds,
+        totalCounts: counts?.length,
+      }
+    });
   } catch (error) {
     console.error('Sessions error:', error);
     return NextResponse.json(
