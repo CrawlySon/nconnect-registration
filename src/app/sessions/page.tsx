@@ -18,7 +18,9 @@ function SessionsContent() {
     if (!attendeeId) return;
 
     try {
-      const res = await fetch(`/api/sessions?attendee=${attendeeId}`);
+      const res = await fetch(`/api/sessions?attendee=${attendeeId}`, {
+        cache: 'no-store',
+      });
       const data = await res.json();
 
       if (!res.ok) {
