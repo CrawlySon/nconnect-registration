@@ -1,58 +1,81 @@
 -- =====================================================
--- nConnect26 Registration System - Database Schema
+-- nConnect26 Registration System - Database Schema v2
+-- FIXED SLOTS VERSION
 -- Run this in Supabase SQL Editor
 -- =====================================================
 
--- Enable UUID extension (should be enabled by default)
+-- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =====================================================
--- STAGES TABLE
--- Represents the different stages/rooms at the conference
+-- DROP OLD TABLES (if migrating)
 -- =====================================================
-CREATE TABLE IF NOT EXISTS stages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+DROP VIEW IF EXISTS session_stats;
+DROP TABLE IF EXISTS registrations;
+DROP TABLE IF EXISTS attendee_sessions;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS attendees;
+DROP TABLE IF EXISTS stages;
+
+-- =====================================================
+-- STAGES TABLE
+-- Fixed 2 stages for the conference
+-- =====================================================
+CREATE TABLE stages (
+    id VARCHAR(50) PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
-    description TEXT,
-    color VARCHAR(7) NOT NULL DEFAULT '#00D4FF', -- Hex color
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    color VARCHAR(7) NOT NULL DEFAULT '#00D4FF'
 );
 
--- Insert default stages for nConnect26
-INSERT INTO stages (name, description, color) VALUES
-    ('AI & Data Stage', 'Prednášky zamerané na AI, machine learning, dátovú analytiku a MLOps', '#00D4FF'),
-    ('Soft Dev Stage', 'Prednášky o softvérovom vývoji, architektúre a best practices', '#A855F7');
+-- Insert fixed stages
+INSERT INTO stages (id, name, color) VALUES
+    ('ai-data-stage', 'AI & Data Stage', '#00D4FF'),
+    ('soft-dev-stage', 'Soft Dev Stage', '#A855F7');
 
 -- =====================================================
 -- SESSIONS TABLE
--- Represents individual talks/presentations
+-- Fixed 14 sessions (7 time slots × 2 stages)
+-- IDs 1-7: AI & Data Stage
+-- IDs 8-14: Soft Dev Stage
 -- =====================================================
-CREATE TABLE IF NOT EXISTS sessions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    title VARCHAR(255) NOT NULL,
-    speaker_name VARCHAR(150) NOT NULL,
+CREATE TABLE sessions (
+    id INTEGER PRIMARY KEY,
+    slot_index INTEGER NOT NULL CHECK (slot_index >= 0 AND slot_index <= 6),
+    stage_id VARCHAR(50) NOT NULL REFERENCES stages(id),
+    title VARCHAR(255) NOT NULL DEFAULT 'TBA',
+    speaker_name VARCHAR(150) NOT NULL DEFAULT 'TBA',
     speaker_company VARCHAR(150),
     description TEXT,
-    stage_id UUID NOT NULL REFERENCES stages(id) ON DELETE CASCADE,
-    date DATE NOT NULL DEFAULT '2026-03-26',
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    capacity INTEGER NOT NULL DEFAULT 50,
-    registered_count INTEGER NOT NULL DEFAULT 0,
-    is_active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    capacity INTEGER NOT NULL DEFAULT 60,
+    UNIQUE(slot_index, stage_id)
 );
 
--- Create index for faster queries
-CREATE INDEX idx_sessions_stage ON sessions(stage_id);
-CREATE INDEX idx_sessions_date_time ON sessions(date, start_time);
+-- Insert 14 fixed sessions
+-- AI & Data Stage (sessions 1-7)
+INSERT INTO sessions (id, slot_index, stage_id, title, speaker_name, speaker_company, description, capacity) VALUES
+(1, 0, 'ai-data-stage', 'MLOps - cesta AI do produkcie', 'Jakub Novotný', 'Slovak Telekom', 'Cesta AI modelov od experimentov až po škálovateľné nasadenie do produkcie.', 60),
+(2, 1, 'ai-data-stage', 'Pokročilé používanie LLM nástrojov pri vývoji softvéru', 'Jakub Žitný', 'Deepnote', 'Nové nástroje založené na LLM, ktoré menia spôsob programovania a dátovej analytiky.', 60),
+(3, 2, 'ai-data-stage', 'Agentic AI', 'Ján Ružarovský', 'SAP Labs Slovakia', 'Koncept Agentic AI a multiagentové systémy pomocou CrewAI.', 60),
+(4, 3, 'ai-data-stage', 'AI-Powered Onboarding', 'Tomáš Kramár', 'Luigi''s Box', 'Ako umelá inteligencia automatizuje onboarding zákazníkov.', 60),
+(5, 4, 'ai-data-stage', 'Kľúč k efektívnemu využitiu NoSQL databáz', 'Juraj Marek', 'Muehlbauer', 'Výhody a výzvy používania NoSQL databáz v priemyselných aplikáciách.', 60),
+(6, 5, 'ai-data-stage', 'Digitalizácia v Muzikeri', 'Ondrej Proksa', 'Muziker', 'Low-code platformy, AI a automatizácia interných procesov.', 60),
+(7, 6, 'ai-data-stage', 'Ako môžu byť študenti pripravení na analýzu údajov', 'Jozef Chyžnaj', 'Orange', 'Rozdiel medzi BI a data science, praktické príklady dátovej analýzy.', 60);
+
+-- Soft Dev Stage (sessions 8-14)
+INSERT INTO sessions (id, slot_index, stage_id, title, speaker_name, speaker_company, description, capacity) VALUES
+(8, 0, 'soft-dev-stage', 'Vývoj a centrálna správa softvéru v heterogénnom prostredí', 'Jozef Fiebig', 'NRSYS', 'Tvorba a centrálne riadenie softvéru pre veľké podnikové systémy.', 60),
+(9, 1, 'soft-dev-stage', 'WebAssembly: Revolúcia vo výkone webových aplikácií', 'Peter Pšenák', 'PowerPlay Studio', 'WebAssembly ako revolučná technológia pre rýchlejšie webové aplikácie.', 60),
+(10, 2, 'soft-dev-stage', 'Správa schém v distribuovaných systémoch', 'Miroslav Kvasnica', 'Seznam.cz', 'Dôležitosť správy schém v distribuovaných systémoch.', 60),
+(11, 3, 'soft-dev-stage', 'Budovateľská mentalita v tech firmách', 'Peter Urban', 'Dedoles', 'Kľúčové rozhodnutia, ktoré formujú technologický rast firmy.', 60),
+(12, 4, 'soft-dev-stage', 'CTO Career Guide', 'Róbert Čižmár', 'GymBeam', '5 kľúčových pilierov úspešného CTO.', 60),
+(13, 5, 'soft-dev-stage', 'Ako zvládnuť tisícky hráčov naraz', 'Juraj Šurman', 'Pixel Federation', 'Backend architektúra a optimalizácia pre veľké online hry.', 60),
+(14, 6, 'soft-dev-stage', 'TBA', 'TBA', NULL, NULL, 60);
 
 -- =====================================================
 -- ATTENDEES TABLE
--- Registered conference participants
+-- Conference participants
 -- =====================================================
-CREATE TABLE IF NOT EXISTS attendees (
+CREATE TABLE attendees (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(255) NOT NULL UNIQUE,
     name VARCHAR(150) NOT NULL,
@@ -62,83 +85,43 @@ CREATE TABLE IF NOT EXISTS attendees (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create index for email lookup
 CREATE INDEX idx_attendees_email ON attendees(email);
 
 -- =====================================================
--- REGISTRATIONS TABLE
--- Links attendees to sessions they're registered for
+-- ATTENDEE_SESSIONS TABLE
+-- Tracks registration status for each attendee × session
+-- Created when attendee registers (14 rows per attendee)
 -- =====================================================
-CREATE TABLE IF NOT EXISTS registrations (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+CREATE TABLE attendee_sessions (
     attendee_id UUID NOT NULL REFERENCES attendees(id) ON DELETE CASCADE,
-    session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
-    registered_at TIMESTAMPTZ DEFAULT NOW(),
-    
-    -- Ensure an attendee can only register once per session
-    UNIQUE(attendee_id, session_id)
+    session_id INTEGER NOT NULL REFERENCES sessions(id),
+    is_registered BOOLEAN NOT NULL DEFAULT false,
+    registered_at TIMESTAMPTZ,
+    PRIMARY KEY (attendee_id, session_id)
 );
 
--- Create indexes for faster lookups
-CREATE INDEX idx_registrations_attendee ON registrations(attendee_id);
-CREATE INDEX idx_registrations_session ON registrations(session_id);
+CREATE INDEX idx_attendee_sessions_attendee ON attendee_sessions(attendee_id);
+CREATE INDEX idx_attendee_sessions_session ON attendee_sessions(session_id);
+CREATE INDEX idx_attendee_sessions_registered ON attendee_sessions(session_id, is_registered) WHERE is_registered = true;
 
 -- =====================================================
--- SAMPLE DATA - nConnect26 Program
--- Based on nConnect25 format
+-- ROW LEVEL SECURITY (RLS)
 -- =====================================================
 
--- Get stage IDs
-DO $$
-DECLARE
-    ai_stage_id UUID;
-    dev_stage_id UUID;
-BEGIN
-    SELECT id INTO ai_stage_id FROM stages WHERE name = 'AI & Data Stage';
-    SELECT id INTO dev_stage_id FROM stages WHERE name = 'Soft Dev Stage';
-
-    -- AI & Data Stage sessions
-    INSERT INTO sessions (title, speaker_name, speaker_company, stage_id, date, start_time, end_time, capacity, description) VALUES
-    ('MLOps - cesta AI do produkcie', 'Jakub Novotný', 'Slovak Telekom', ai_stage_id, '2026-03-26', '09:00', '09:45', 60, 'Cesta AI modelov od experimentov až po škálovateľné nasadenie do produkcie.'),
-    ('Pokročilé používanie LLM nástrojov pri vývoji softvéru', 'Jakub Žitný', 'Deepnote', ai_stage_id, '2026-03-26', '09:45', '10:30', 60, 'Nové nástroje založené na LLM, ktoré menia spôsob programovania a dátovej analytiky.'),
-    ('Agentic AI', 'Ján Ružarovský', 'SAP Labs Slovakia', ai_stage_id, '2026-03-26', '10:30', '11:15', 60, 'Koncept Agentic AI a multiagentové systémy pomocou CrewAI.'),
-    ('AI-Powered Onboarding', 'Tomáš Kramár', 'Luigi''s Box', ai_stage_id, '2026-03-26', '11:15', '12:00', 60, 'Ako umelá inteligencia automatizuje onboarding zákazníkov.'),
-    ('Kľúč k efektívnemu využitiu NoSQL databáz', 'Juraj Marek', 'Muehlbauer', ai_stage_id, '2026-03-26', '13:00', '13:45', 60, 'Výhody a výzvy používania NoSQL databáz v priemyselných aplikáciách.'),
-    ('Digitalizácia v Muzikeri', 'Ondrej Proksa', 'Muziker', ai_stage_id, '2026-03-26', '13:45', '14:30', 60, 'Low-code platformy, AI a automatizácia interných procesov.'),
-    ('Ako môžu byť študenti pripravení na analýzu údajov', 'Jozef Chyžnaj', 'Orange', ai_stage_id, '2026-03-26', '14:30', '15:15', 60, 'Rozdiel medzi BI a data science, praktické príklady dátovej analýzy.');
-
-    -- Soft Dev Stage sessions
-    INSERT INTO sessions (title, speaker_name, speaker_company, stage_id, date, start_time, end_time, capacity, description) VALUES
-    ('Nadzvuková a subatomická Java', 'Patrik Malý', 'UNIQA GSCS', dev_stage_id, '2026-03-26', '09:00', '09:45', 60, 'Moderné Java frameworky ako Quarkus pre enterprise aplikácie.'),
-    ('Vývoj a centrálna správa softvéru v heterogénnom prostredí', 'Jozef Fiebig', 'NRSYS', dev_stage_id, '2026-03-26', '09:45', '10:30', 60, 'Tvorba a centrálne riadenie softvéru pre veľké podnikové systémy.'),
-    ('WebAssembly: Revolúcia vo výkone webových aplikácií', 'Peter Pšenák', 'PowerPlay Studio', dev_stage_id, '2026-03-26', '10:30', '11:15', 60, 'WebAssembly ako revolučná technológia pre rýchlejšie webové aplikácie.'),
-    ('Správa schém v distribuovaných systémoch', 'Miroslav Kvasnica', 'Seznam.cz', dev_stage_id, '2026-03-26', '11:15', '12:00', 60, 'Dôležitosť správy schém v distribuovaných systémoch.'),
-    ('Budovateľská mentalita v tech firmách', 'Peter Urban', 'Dedoles', dev_stage_id, '2026-03-26', '13:00', '13:45', 60, 'Kľúčové rozhodnutia, ktoré formujú technologický rast firmy.'),
-    ('CTO Career Guide', 'Róbert Čižmár', 'GymBeam', dev_stage_id, '2026-03-26', '13:45', '14:30', 60, '5 kľúčových pilierov úspešného CTO.'),
-    ('Ako zvládnuť tisícky hráčov naraz', 'Juraj Šurman', 'Pixel Federation', dev_stage_id, '2026-03-26', '14:30', '15:15', 60, 'Backend architektúra a optimalizácia pre veľké online hry.');
-
-END $$;
-
--- =====================================================
--- ROW LEVEL SECURITY (RLS) Policies
--- Enable RLS for security
--- =====================================================
-
--- Enable RLS on all tables
 ALTER TABLE stages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE attendees ENABLE ROW LEVEL SECURITY;
-ALTER TABLE registrations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendee_sessions ENABLE ROW LEVEL SECURITY;
 
 -- Stages: Everyone can read
 CREATE POLICY "Stages are viewable by everyone" ON stages
     FOR SELECT USING (true);
 
--- Sessions: Everyone can read active sessions
-CREATE POLICY "Active sessions are viewable by everyone" ON sessions
-    FOR SELECT USING (is_active = true);
+-- Sessions: Everyone can read
+CREATE POLICY "Sessions are viewable by everyone" ON sessions
+    FOR SELECT USING (true);
 
--- Sessions: Service role can do everything
+-- Sessions: Service role can update (for admin)
 CREATE POLICY "Service role can manage sessions" ON sessions
     FOR ALL USING (auth.role() = 'service_role');
 
@@ -146,38 +129,57 @@ CREATE POLICY "Service role can manage sessions" ON sessions
 CREATE POLICY "Service role can manage attendees" ON attendees
     FOR ALL USING (auth.role() = 'service_role');
 
--- Registrations: Service role can manage
-CREATE POLICY "Service role can manage registrations" ON registrations
+-- Attendee Sessions: Service role can manage
+CREATE POLICY "Service role can manage attendee_sessions" ON attendee_sessions
     FOR ALL USING (auth.role() = 'service_role');
 
 -- =====================================================
--- HELPFUL VIEWS
+-- HELPER VIEW: Session with registration counts
 -- =====================================================
-
--- View for session statistics
 CREATE OR REPLACE VIEW session_stats AS
-SELECT 
+SELECT
     s.id,
+    s.slot_index,
     s.title,
     s.speaker_name,
-    st.name as stage_name,
-    s.start_time,
-    s.end_time,
+    s.speaker_company,
+    s.description,
     s.capacity,
-    s.registered_count,
-    ROUND((s.registered_count::numeric / s.capacity::numeric) * 100, 1) as fill_percentage,
-    s.capacity - s.registered_count as available_spots
+    st.id as stage_id,
+    st.name as stage_name,
+    st.color as stage_color,
+    COALESCE(reg.registered_count, 0) as registered_count,
+    s.capacity - COALESCE(reg.registered_count, 0) as available_spots
 FROM sessions s
 JOIN stages st ON s.stage_id = st.id
-WHERE s.is_active = true
-ORDER BY s.start_time;
+LEFT JOIN (
+    SELECT session_id, COUNT(*) as registered_count
+    FROM attendee_sessions
+    WHERE is_registered = true
+    GROUP BY session_id
+) reg ON s.id = reg.session_id
+ORDER BY s.slot_index, s.stage_id;
+
+-- =====================================================
+-- FUNCTION: Initialize attendee sessions
+-- Call after creating a new attendee
+-- =====================================================
+CREATE OR REPLACE FUNCTION initialize_attendee_sessions(p_attendee_id UUID)
+RETURNS void AS $$
+BEGIN
+    INSERT INTO attendee_sessions (attendee_id, session_id, is_registered)
+    SELECT p_attendee_id, id, false
+    FROM sessions
+    ON CONFLICT DO NOTHING;
+END;
+$$ LANGUAGE plpgsql;
 
 -- =====================================================
 -- DONE!
 -- =====================================================
--- Your database is now set up with:
--- - 2 stages (AI & Data, Soft Dev)
--- - 14 sample sessions based on nConnect25 program
--- - Tables for attendees and registrations
--- - Row Level Security enabled
+-- Fixed slots system with:
+-- - 2 stages
+-- - 14 fixed sessions (7 per stage)
+-- - attendee_sessions for tracking registrations
+-- - No more dynamic session creation
 -- =====================================================
