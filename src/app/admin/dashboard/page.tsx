@@ -84,30 +84,31 @@ export default function AdminDashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface-dark flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-surface-dark">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-surface-light border-b border-gray-800 py-4 px-4">
+      <header className="glass border-b border-white/10 py-4 px-4 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold">
-            <span className="text-primary">nConnect</span>
-            <span className="text-ai-stage">26</span>
-            <span className="text-gray-400 ml-2">Admin</span>
+            <span className="text-white">n</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-cyan-300">Connect</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-orange-500">26</span>
+            <span className="text-slate-400 ml-2 font-normal">Admin</span>
           </h1>
-          <div className="flex items-center gap-4">
-            <Link href="/admin/sessions" className="text-gray-400 hover:text-white transition-colors">
+          <div className="flex items-center gap-6">
+            <Link href="/admin/sessions" className="text-slate-400 hover:text-white transition-colors text-sm">
               Prednasky
             </Link>
-            <Link href="/admin/attendees" className="text-gray-400 hover:text-white transition-colors">
+            <Link href="/admin/attendees" className="text-slate-400 hover:text-white transition-colors text-sm">
               Ucastnici
             </Link>
-            <button onClick={handleLogout} className="text-gray-400 hover:text-red-400 transition-colors">
+            <button onClick={handleLogout} className="text-slate-400 hover:text-red-400 transition-colors text-sm">
               Odhlasit
             </button>
           </div>
@@ -118,16 +119,16 @@ export default function AdminDashboardPage() {
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <div className="card">
-            <div className="text-gray-400 text-sm mb-1">Celkom ucastnikov</div>
-            <div className="text-3xl font-bold text-white">{stats.totalAttendees}</div>
+            <div className="text-slate-400 text-sm mb-1">Celkom ucastnikov</div>
+            <div className="text-4xl font-bold text-white">{stats.totalAttendees}</div>
           </div>
           <div className="card">
-            <div className="text-gray-400 text-sm mb-1">Celkom registracii</div>
-            <div className="text-3xl font-bold text-primary">{stats.totalRegistrations}</div>
+            <div className="text-slate-400 text-sm mb-1">Celkom registracii</div>
+            <div className="text-4xl font-bold text-cyan-400">{stats.totalRegistrations}</div>
           </div>
           <div className="card">
-            <div className="text-gray-400 text-sm mb-1">Priemerne na ucastnika</div>
-            <div className="text-3xl font-bold text-ai-stage">
+            <div className="text-slate-400 text-sm mb-1">Priemerne na ucastnika</div>
+            <div className="text-4xl font-bold text-orange-400">
               {stats.totalAttendees > 0
                 ? (stats.totalRegistrations / stats.totalAttendees).toFixed(1)
                 : '0'}
@@ -138,10 +139,10 @@ export default function AdminDashboardPage() {
         {/* Chart */}
         <div className="card mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-            <h2 className="text-lg font-semibold">Registracie podla dni</h2>
+            <h2 className="text-lg font-semibold text-white">Registracie podla dni</h2>
             <div className="flex gap-2">
               <select
-                className="input py-2"
+                className="input py-2 text-sm"
                 value={filterStage}
                 onChange={(e) => {
                   setFilterStage(e.target.value);
@@ -153,7 +154,7 @@ export default function AdminDashboardPage() {
                 <option value={STAGES.SOFTDEV_CYBER.id}>{STAGES.SOFTDEV_CYBER.name}</option>
               </select>
               <select
-                className="input py-2"
+                className="input py-2 text-sm"
                 value={filterSession}
                 onChange={(e) => setFilterSession(e.target.value)}
               >
@@ -172,18 +173,18 @@ export default function AdminDashboardPage() {
               {chartData.map((point) => (
                 <div key={point.date} className="flex-1 flex flex-col items-center">
                   <div
-                    className="w-full bg-primary rounded-t transition-all"
+                    className="w-full bg-gradient-to-t from-cyan-500 to-cyan-400 rounded-t transition-all"
                     style={{ height: `${(point.count / maxCount) * 100}%`, minHeight: point.count > 0 ? '4px' : '0' }}
                   ></div>
-                  <div className="text-xs text-gray-500 mt-2 rotate-45 origin-left whitespace-nowrap">
+                  <div className="text-xs text-slate-500 mt-2 rotate-45 origin-left whitespace-nowrap">
                     {new Date(point.date).toLocaleDateString('sk-SK', { day: 'numeric', month: 'short' })}
                   </div>
-                  <div className="text-xs text-gray-400 mt-1">{point.count}</div>
+                  <div className="text-xs text-slate-400 mt-1">{point.count}</div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="h-64 flex items-center justify-center text-gray-500">
+            <div className="h-64 flex items-center justify-center text-slate-500">
               Ziadne data
             </div>
           )}
@@ -191,8 +192,8 @@ export default function AdminDashboardPage() {
 
         {/* Sessions Overview */}
         <div className="card">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold">Prehlad prednasok</h2>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <h2 className="text-lg font-semibold text-white">Prehlad prednasok</h2>
             <div className="flex gap-2">
               <a
                 href="/api/admin/export?type=attendees"
@@ -214,47 +215,46 @@ export default function AdminDashboardPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-800">
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Cas</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Stage</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Prednaska</th>
-                  <th className="text-left py-3 px-4 text-gray-400 font-medium">Recnik</th>
-                  <th className="text-right py-3 px-4 text-gray-400 font-medium">Registracie</th>
+                <tr className="border-b border-white/10">
+                  <th className="text-left py-3 px-4 text-slate-400 font-medium text-sm">Cas</th>
+                  <th className="text-left py-3 px-4 text-slate-400 font-medium text-sm">Stage</th>
+                  <th className="text-left py-3 px-4 text-slate-400 font-medium text-sm">Prednaska</th>
+                  <th className="text-left py-3 px-4 text-slate-400 font-medium text-sm">Recnik</th>
+                  <th className="text-right py-3 px-4 text-slate-400 font-medium text-sm">Registracie</th>
                 </tr>
               </thead>
               <tbody>
                 {sessions.map((session) => {
                   const slot = TIME_SLOTS[session.slot_index];
+                  const isOrange = session.stage_id === STAGES.AI_DATA.id;
                   return (
-                    <tr key={session.id} className="border-b border-gray-800/50 hover:bg-surface-light/50">
-                      <td className="py-3 px-4 text-gray-400">
+                    <tr key={session.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                      <td className="py-3 px-4 text-slate-400 text-sm">
                         {slot.start} - {slot.end}
                       </td>
                       <td className="py-3 px-4">
-                        <span
-                          className="px-2 py-1 rounded text-xs font-medium"
-                          style={{
-                            backgroundColor: session.stage?.color + '20',
-                            color: session.stage?.color,
-                          }}
-                        >
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                          isOrange
+                            ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        }`}>
                           {session.stage?.name}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <Link
                           href={`/admin/sessions/${session.id}`}
-                          className="text-white hover:text-primary transition-colors"
+                          className="text-white hover:text-cyan-400 transition-colors"
                         >
                           {session.title}
                         </Link>
                       </td>
-                      <td className="py-3 px-4 text-gray-400">{session.speaker_name}</td>
+                      <td className="py-3 px-4 text-slate-400">{session.speaker_name}</td>
                       <td className="py-3 px-4 text-right">
                         <span className={session.registered_count >= session.capacity ? 'text-red-400' : 'text-white'}>
                           {session.registered_count}
                         </span>
-                        <span className="text-gray-500">/{session.capacity}</span>
+                        <span className="text-slate-500">/{session.capacity}</span>
                       </td>
                     </tr>
                   );

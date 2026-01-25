@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Session } from '@/types';
-import { TIME_SLOTS } from '@/lib/constants';
+import { TIME_SLOTS, STAGES } from '@/lib/constants';
 import Link from 'next/link';
 
 interface SessionWithCount extends Session {
@@ -19,6 +19,7 @@ export default function AdminSessionEditPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const [formData, setFormData] = useState({
     title: '',
@@ -63,6 +64,7 @@ export default function AdminSessionEditPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setSaving(true);
 
     try {
@@ -78,7 +80,14 @@ export default function AdminSessionEditPage() {
         throw new Error(data.error || 'Ulozenie zlyhalo');
       }
 
-      router.push('/admin/sessions');
+      setSuccess('Zmeny boli ulozene');
+      // Update local session data
+      setSession((prev) => prev ? { ...prev, ...formData } : null);
+
+      // Redirect after short delay
+      setTimeout(() => {
+        router.push('/admin/sessions');
+      }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nieco sa pokazilo');
     } finally {
@@ -88,17 +97,17 @@ export default function AdminSessionEditPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-surface-dark flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-surface-dark flex items-center justify-center p-4">
-        <div className="card text-center">
-          <h1 className="text-2xl font-bold mb-4">Prednaska neexistuje</h1>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="card text-center max-w-md">
+          <h1 className="text-2xl font-bold mb-4 text-white">Prednaska neexistuje</h1>
           <Link href="/admin/sessions" className="btn-primary inline-block">
             Spat
           </Link>
@@ -108,50 +117,55 @@ export default function AdminSessionEditPage() {
   }
 
   const slot = TIME_SLOTS[session.slot_index];
+  const isOrange = session.stage_id === STAGES.AI_DATA.id;
 
   return (
-    <div className="min-h-screen bg-surface-dark">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="bg-surface-light border-b border-gray-800 py-4 px-4">
+      <header className="glass border-b border-white/10 py-4 px-4 sticky top-0 z-20">
         <div className="max-w-2xl mx-auto flex items-center gap-4">
-          <Link href="/admin/sessions" className="text-gray-400 hover:text-white transition-colors">
+          <Link href="/admin/sessions" className="text-slate-400 hover:text-white transition-colors">
             &larr; Spat
           </Link>
-          <h1 className="text-xl font-bold">Upravit prednasku</h1>
+          <h1 className="text-xl font-bold text-white">Upravit prednasku</h1>
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto py-8 px-4">
         <div className="card">
           {/* Session Info */}
-          <div className="mb-6 pb-6 border-b border-gray-800">
-            <div className="flex items-center gap-4 text-sm text-gray-400">
-              <span
-                className="px-3 py-1 rounded-full"
-                style={{
-                  backgroundColor: session.stage?.color + '20',
-                  color: session.stage?.color,
-                }}
-              >
+          <div className="mb-6 pb-6 border-b border-white/10">
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              <span className={`px-3 py-1.5 rounded-lg font-medium ${
+                isOrange
+                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                  : 'bg-red-500/20 text-red-400 border border-red-500/30'
+              }`}>
                 {session.stage?.name}
               </span>
-              <span>{slot.start} - {slot.end}</span>
-              <span>ID: {session.id}</span>
+              <span className="text-slate-400">{slot.start} - {slot.end}</span>
+              <span className="text-slate-500">ID: {session.id}</span>
             </div>
-            <div className="mt-2 text-sm text-gray-500">
-              Registrovanych: {session.registered_count}/{session.capacity}
+            <div className="mt-3 text-sm text-slate-400">
+              Registrovanych: <span className="text-white font-medium">{session.registered_count}</span>/{session.capacity}
             </div>
           </div>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg mb-6">
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl mb-6 text-sm">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {success && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-4 py-3 rounded-xl mb-6 text-sm">
+              {success}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Nazov prednasky *</label>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">Nazov prednasky</label>
               <input
                 type="text"
                 required
@@ -162,7 +176,7 @@ export default function AdminSessionEditPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Meno recnika *</label>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">Meno recnika</label>
               <input
                 type="text"
                 required
@@ -173,7 +187,10 @@ export default function AdminSessionEditPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Firma recnika</label>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Firma recnika
+                <span className="text-slate-500 font-normal"> (volitelne)</span>
+              </label>
               <input
                 type="text"
                 className="input"
@@ -183,20 +200,23 @@ export default function AdminSessionEditPage() {
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Popis</label>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">
+                Popis
+                <span className="text-slate-500 font-normal"> (volitelne)</span>
+              </label>
               <textarea
-                className="input min-h-[100px]"
+                className="input min-h-[120px] resize-y"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Kapacita</label>
+              <label className="block text-sm text-slate-300 mb-2 font-medium">Kapacita</label>
               <input
                 type="number"
                 min="1"
-                className="input"
+                className="input w-32"
                 value={formData.capacity}
                 onChange={(e) => setFormData({ ...formData, capacity: parseInt(e.target.value) || 60 })}
               />
@@ -204,7 +224,15 @@ export default function AdminSessionEditPage() {
 
             <div className="flex gap-4 pt-4">
               <button type="submit" disabled={saving} className="btn-primary flex-1">
-                {saving ? 'Ukladam...' : 'Ulozit'}
+                {saving ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Ukladam...
+                  </span>
+                ) : 'Ulozit zmeny'}
               </button>
               <Link href="/admin/sessions" className="btn-secondary flex-1 text-center">
                 Zrusit

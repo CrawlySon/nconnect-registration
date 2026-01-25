@@ -36,23 +36,23 @@ CREATE TABLE sessions (
 
 -- AI&Data Stage (sessions 1-7)
 INSERT INTO sessions (id, slot_index, stage_id, title, speaker_name, speaker_company, description, capacity) VALUES
-(1, 0, 'ai-data', 'TBA', 'TBA', NULL, NULL, 60),
-(2, 1, 'ai-data', 'TBA', 'TBA', NULL, NULL, 60),
-(3, 2, 'ai-data', 'TBA', 'TBA', NULL, NULL, 60),
-(4, 3, 'ai-data', 'TBA', 'TBA', NULL, NULL, 60),
-(5, 4, 'ai-data', 'TBA', 'TBA', NULL, NULL, 60),
-(6, 5, 'ai-data', 'TBA', 'TBA', NULL, NULL, 60),
-(7, 6, 'ai-data', 'TBA', 'TBA', NULL, NULL, 60);
+(1, 0, 'ai-data', 'Uvod do AI a Machine Learning', 'Martin Kovac', 'Google Slovakia', 'Zakladne principy AI a ML pre zaciatocnikov. Dozviete sa o neuronových sieťach a deep learning.', 80),
+(2, 1, 'ai-data', 'ChatGPT v praxi: Ako ho efektivne pouzivat', 'Jana Horváthova', 'OpenAI Partner', 'Prakticke tipy a triky pre pracu s ChatGPT a dalsimi LLM modelmi.', 60),
+(3, 2, 'ai-data', 'Data Science pre zaciatocnikov', 'Peter Novak', 'DataCamp', 'Od dat k insightom - kompletny uvod do data science.', 50),
+(4, 3, 'ai-data', 'Computer Vision a rozpoznavanie obrazu', 'Lucia Mazurova', 'ESET', 'Ako pocitace "vidia" a rozpoznavaju objekty na obrazkoch a vo videach.', 60),
+(5, 4, 'ai-data', 'NLP: Spracovanie prirodzeneho jazyka', 'Tomas Kral', 'Microsoft', 'Ako AI rozumie ludskej reci a textu.', 60),
+(6, 5, 'ai-data', 'AI v automobilovom priemysle', 'Milan Stefanik', 'Volkswagen SK', 'Autonomne vozidla a AI asistenti v modernych automobiloch.', 70),
+(7, 6, 'ai-data', 'Buducnost AI: Co nas caka?', 'Eva Polakova', 'AI Slovakia', 'Trendy a predpovede vo svete umelej inteligencie.', 60);
 
 -- SoftDev&CyberSecurity Stage (sessions 8-14)
 INSERT INTO sessions (id, slot_index, stage_id, title, speaker_name, speaker_company, description, capacity) VALUES
-(8, 0, 'softdev-cyber', 'TBA', 'TBA', NULL, NULL, 60),
-(9, 1, 'softdev-cyber', 'TBA', 'TBA', NULL, NULL, 60),
-(10, 2, 'softdev-cyber', 'TBA', 'TBA', NULL, NULL, 60),
-(11, 3, 'softdev-cyber', 'TBA', 'TBA', NULL, NULL, 60),
-(12, 4, 'softdev-cyber', 'TBA', 'TBA', NULL, NULL, 60),
-(13, 5, 'softdev-cyber', 'TBA', 'TBA', NULL, NULL, 60),
-(14, 6, 'softdev-cyber', 'TBA', 'TBA', NULL, NULL, 60);
+(8, 0, 'softdev-cyber', 'Modern React: Hooks a Server Components', 'Adam Zilinec', 'Vercel', 'Najnovsie funkcie Reactu a best practices pre 2026.', 60),
+(9, 1, 'softdev-cyber', 'Kyberneticka bezpecnost 101', 'Robert Mako', 'ESET', 'Zaklady kybernetickej bezpecnosti pre kazdeho vyvojara.', 70),
+(10, 2, 'softdev-cyber', 'DevOps a CI/CD pipelines', 'Marek Hudak', 'GitLab', 'Automatizacia deploymentu a kontinualna integracia.', 50),
+(11, 3, 'softdev-cyber', 'Ethical Hacking Workshop', 'Daniela Kovacova', 'HackTrophy', 'Prakticke cvicenia z penetracneho testovania.', 40),
+(12, 4, 'softdev-cyber', 'TypeScript advanced patterns', 'Jakub Bendzala', 'Stripe', 'Pokrocile techniky v TypeScripte pre enterprise aplikacie.', 60),
+(13, 5, 'softdev-cyber', 'Cloud Security na AWS', 'Petra Havrankova', 'Amazon AWS', 'Bezpecnostne best practices pre cloud infrastrukturu.', 60),
+(14, 6, 'softdev-cyber', 'Kariera v IT: Q&A panel', 'Panel hostov', 'Rozne spolocnosti', 'Otazky a odpovede s uspesnymi IT profesionalmi.', 100);
 
 -- ATTENDEES TABLE
 CREATE TABLE attendees (

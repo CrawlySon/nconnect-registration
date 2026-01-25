@@ -6,14 +6,11 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#0A1628',
-        surface: '#111827',
-        secondary: '#1E3A5F',
-        accent: '#00D4FF',
-        highlight: '#FF6B35',
-        muted: '#94A3B8',
-        'ai-stage': '#FF6B35',
-        'softdev-stage': '#EF4444',
+        'ai-stage': '#f97316',
+        'softdev-stage': '#ef4444',
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
       },
     },
   },
