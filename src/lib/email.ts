@@ -11,7 +11,7 @@ function getResend(): Resend | null {
   return resend;
 }
 
-const FROM_EMAIL = 'nConnect <noreply@nconnect.sk>';
+const FROM_EMAIL = 'nConnect <onboarding@resend.dev>';
 
 interface SendEmailParams {
   to: string;
@@ -122,6 +122,9 @@ export async function sendEmail({ to, attendeeName, type, sessions, attendeeId }
 }
 
 export async function sendRegistrationEmail({ to, attendeeName, password, attendeeId }: SendRegistrationEmailParams) {
+  console.log('[EMAIL] sendRegistrationEmail called:', { to, attendeeName, attendeeId });
+  console.log('[EMAIL] RESEND_API_KEY exists:', !!process.env.RESEND_API_KEY);
+
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const sessionsUrl = `${appUrl}/sessions?attendee=${attendeeId}`;
 
