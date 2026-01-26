@@ -21,6 +21,13 @@ interface SendEmailParams {
   attendeeId: string;
 }
 
+interface SendRegistrationEmailParams {
+  to: string;
+  attendeeName: string;
+  password: string;
+  attendeeId: string;
+}
+
 export async function sendEmail({ to, attendeeName, type, sessions, attendeeId }: SendEmailParams) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const sessionsUrl = `${appUrl}/sessions?attendee=${attendeeId}`;
@@ -107,6 +114,76 @@ export async function sendEmail({ to, attendeeName, type, sessions, attendeeId }
     }
 
     console.log(`[EMAIL] Sent to ${to}`);
+    return { success: true, data };
+  } catch (error) {
+    console.error('[EMAIL] Exception:', error);
+    return { success: false, error };
+  }
+}
+
+export async function sendRegistrationEmail({ to, attendeeName, password, attendeeId }: SendRegistrationEmailParams) {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const sessionsUrl = `${appUrl}/sessions?attendee=${attendeeId}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head><meta charset="utf-8"></head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: #0A1628; padding: 32px; text-align: center; border-radius: 16px 16px 0 0;">
+          <h1 style="color: #00D4FF; margin: 0; font-size: 28px;">nConnect<span style="color: #FF6B35;">26</span></h1>
+          <p style="color: #94a3b8; margin: 8px 0 0 0; font-size: 14px;">26. marca 2026 | Studentske centrum UKF Nitra</p>
+        </div>
+        <div style="background: white; padding: 32px; border: 1px solid #e5e7eb; border-top: none;">
+          <h2 style="color: #0A1628; margin: 0 0 16px 0;">Registracia uspesna!</h2>
+          <p style="color: #374151;">Ahoj <strong>${attendeeName}</strong>,</p>
+          <p style="color: #374151;">Dakujeme za registraciu na IT konferenciu nConnect26!</p>
+
+          <div style="background: #f0fdf4; border: 2px solid #22c55e; border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center;">
+            <p style="color: #166534; margin: 0 0 8px 0; font-size: 14px;">Tvoje prihlasovacie heslo:</p>
+            <p style="color: #166534; margin: 0; font-size: 32px; font-weight: bold; letter-spacing: 4px; font-family: monospace;">${password}</p>
+          </div>
+
+          <p style="color: #6b7280; font-size: 14px;">
+            Toto heslo pouzi na prihlasenie spolu s tvojim emailom. Odporucame si ho ulozit.
+          </p>
+
+          <div style="text-align: center; margin-top: 32px;">
+            <a href="${sessionsUrl}" style="background: linear-gradient(135deg, #FF6B35 0%, #f97316 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+              Vybrat prednasky
+            </a>
+          </div>
+        </div>
+        <div style="background: #f8fafc; padding: 24px; text-align: center; border-radius: 0 0 16px 16px; border: 1px solid #e5e7eb; border-top: none;">
+          <p style="color: #64748B; font-size: 14px; margin: 0;">
+            © nConnect26 | <a href="mailto:info@nconnect.sk" style="color: #00D4FF;">info@nconnect.sk</a>
+          </p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  try {
+    const resendClient = getResend();
+
+    if (!resendClient) {
+      console.log('[EMAIL] Resend not configured, password:', password);
+      return { success: false, skipped: true };
+    }
+
+    const { data, error } = await resendClient.emails.send({
+      from: FROM_EMAIL,
+      to: [to],
+      subject: 'Vitaj na nConnect26! Tu je tvoje heslo',
+      html,
+    });
+
+    if (error) {
+      console.error('[EMAIL] Error:', error);
+      return { success: false, error };
+    }
+
+    console.log(`[EMAIL] Registration sent to ${to}`);
     return { success: true, data };
   } catch (error) {
     console.error('[EMAIL] Exception:', error);

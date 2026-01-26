@@ -61,6 +61,7 @@ CREATE TABLE attendees (
     name VARCHAR(150) NOT NULL,
     attendee_type VARCHAR(50) NOT NULL,
     school_or_company VARCHAR(150),
+    password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

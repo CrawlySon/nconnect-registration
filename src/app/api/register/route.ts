@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { sendEmail } from '@/lib/email';
+import { sendRegistrationEmail } from '@/lib/email';
 import { TOTAL_SESSIONS } from '@/lib/constants';
+import { generatePassword, hashPassword } from '@/lib/password';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,13 +25,15 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existing) {
-      return NextResponse.json({
-        success: true,
-        attendeeId: existing.id,
-        message: 'Ucet uz existuje',
-        isExisting: true,
-      });
+      return NextResponse.json(
+        { error: 'Tento email je uz zaregistrovany. Pouzi prihlasenie.' },
+        { status: 400 }
+      );
     }
+
+    // Generate password
+    const plainPassword = generatePassword();
+    const passwordHash = hashPassword(plainPassword);
 
     // Create new attendee
     const { data: attendee, error } = await supabase
@@ -40,6 +43,7 @@ export async function POST(request: NextRequest) {
         name,
         attendee_type,
         school_or_company: school_or_company || null,
+        password_hash: passwordHash,
       })
       .select()
       .single();
@@ -70,13 +74,12 @@ export async function POST(request: NextRequest) {
       console.error('Failed to create attendee_sessions:', sessionsError);
     }
 
-    // Send welcome email
+    // Send welcome email with password
     try {
-      await sendEmail({
+      await sendRegistrationEmail({
         to: email,
         attendeeName: name,
-        type: 'registration',
-        sessions: [],
+        password: plainPassword,
         attendeeId: attendee.id,
       });
     } catch (emailError) {
