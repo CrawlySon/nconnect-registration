@@ -59,11 +59,24 @@ export default function AdminLoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5" autoComplete="on">
+          {/* Hidden username field for password managers */}
+          <input
+            type="text"
+            name="username"
+            autoComplete="username"
+            value="admin"
+            readOnly
+            className="sr-only"
+            tabIndex={-1}
+          />
           <div>
-            <label className="block text-sm text-slate-300 mb-2 font-medium">Heslo</label>
+            <label htmlFor="password" className="block text-sm text-slate-300 mb-2 font-medium">Heslo</label>
             <input
               type="password"
+              id="password"
+              name="password"
+              autoComplete="current-password"
               required
               className="input"
               placeholder="••••••••"
