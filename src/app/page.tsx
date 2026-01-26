@@ -178,13 +178,15 @@ export default function HomePage() {
             )}
 
             {mode === 'register' ? (
-              <form onSubmit={handleRegister} className="space-y-5">
+              <form onSubmit={handleRegister} className="space-y-5" autoComplete="off">
                 <div>
                   <label className="block text-sm text-slate-300 mb-2 font-medium">
                     Meno a priezvisko
                   </label>
                   <input
                     type="text"
+                    name="attendee-name"
+                    autoComplete="off"
                     required
                     className="input"
                     placeholder="Jan Novak"
@@ -199,6 +201,8 @@ export default function HomePage() {
                   </label>
                   <input
                     type="email"
+                    name="attendee-reg-email"
+                    autoComplete="off"
                     required
                     className="input"
                     placeholder="jan@example.com"
@@ -275,15 +279,15 @@ export default function HomePage() {
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleLogin} className="space-y-5" autoComplete="on">
+              <form onSubmit={handleLogin} className="space-y-5" autoComplete="off">
                 <div>
                   <label className="block text-sm text-slate-300 mb-2 font-medium">
                     Email
                   </label>
                   <input
                     type="email"
-                    name="email"
-                    autoComplete="email"
+                    name="attendee-email"
+                    autoComplete="off"
                     required
                     className="input"
                     placeholder="jan@example.com"
@@ -298,8 +302,8 @@ export default function HomePage() {
                   </label>
                   <input
                     type="password"
-                    name="password"
-                    autoComplete="current-password"
+                    name="attendee-password"
+                    autoComplete="off"
                     required
                     className="input"
                     placeholder="6-znakove heslo z emailu"
