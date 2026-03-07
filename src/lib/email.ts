@@ -23,6 +23,28 @@ function getTransporter(): nodemailer.Transporter | null {
 const FROM_EMAIL = process.env.SMTP_USER || 'registracia@nconnect.sk';
 const FROM_NAME = 'nConnect26';
 
+// Generate Google Calendar URL for a session
+function getGoogleCalendarUrl(session: Session): string {
+  // Convert date "2026-03-26" and time "09:00" or "09:00:00" to Google Calendar format "20260326T090000"
+  const dateClean = session.date.replace(/-/g, '');
+  const startClean = session.start_time.replace(/:/g, '').padEnd(6, '0');
+  const endClean = session.end_time.replace(/:/g, '').padEnd(6, '0');
+
+  const details = `${session.speaker_name}${session.speaker_company ? ` • ${session.speaker_company}` : ''}${session.stage?.name ? `\nStage: ${session.stage.name}` : ''}\n\nnConnect26 - IT konferencia`;
+  const location = 'Študentské centrum UKF, Dražovská 2, Nitra';
+
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: session.title,
+    dates: `${dateClean}T${startClean}/${dateClean}T${endClean}`,
+    details,
+    location,
+    ctz: 'Europe/Bratislava',
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 interface SendEmailParams {
   to: string;
   attendeeName: string;
@@ -69,10 +91,15 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
   // Sort sessions by time
   const sortedSessions = [...sessions].sort((a, b) => a.start_time.localeCompare(b.start_time));
 
+  // .ics calendar download link
+  const icsUrl = `${appUrl}/api/calendar?email=${encodeURIComponent(to)}`;
+
   const sessionsHtml = sortedSessions.length > 0 ? `
     <div style="margin-top: 24px;">
       <h3 style="color: #0A1628; margin-bottom: 16px; font-size: 18px;">📅 Tvoj program na nConnect26</h3>
-      ${sortedSessions.map(session => `
+      ${sortedSessions.map(session => {
+        const gcalUrl = getGoogleCalendarUrl(session);
+        return `
         <div style="background: #f8fafc; border-left: 4px solid ${session.stage?.color || '#00D4FF'}; padding: 16px; margin-bottom: 12px; border-radius: 0 8px 8px 0;">
           <div style="display: flex; align-items: center; margin-bottom: 8px;">
             <span style="background: ${session.stage?.color || '#00D4FF'}22; color: ${session.stage?.color || '#00D4FF'}; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">
@@ -83,11 +110,25 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
             </span>
           </div>
           <h4 style="margin: 0 0 4px 0; color: #0A1628; font-size: 16px;">${session.title}</h4>
-          <p style="margin: 0; color: #64748B; font-size: 14px;">
+          <p style="margin: 0 0 8px 0; color: #64748B; font-size: 14px;">
             👤 ${session.speaker_name}${session.speaker_company ? ` • ${session.speaker_company}` : ''}
           </p>
+          <a href="${gcalUrl}" target="_blank" style="color: #1a73e8; font-size: 13px; text-decoration: none;">
+            📅 Pridať do Google kalendára
+          </a>
         </div>
-      `).join('')}
+      `}).join('')}
+
+      <!-- Add all to calendar -->
+      <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 16px auto 0 auto;">
+        <tr>
+          <td style="border-radius: 8px; background-color: #0A1628;" align="center">
+            <a href="${icsUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+              📅 Stiahnuť všetky do kalendára (.ics)
+            </a>
+          </td>
+        </tr>
+      </table>
     </div>
   ` : `
     <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px; margin-top: 24px;">
