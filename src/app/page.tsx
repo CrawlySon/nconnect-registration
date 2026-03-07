@@ -109,10 +109,15 @@ export default function HomePage() {
               {/* Partners mention */}
               <div className="pt-4">
                 <p className="text-nconnect-muted text-sm mb-3">Hlavní partneri</p>
-                <div className="flex items-center gap-6 opacity-70">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 opacity-70">
                   <span className="text-white font-semibold">GymBeam</span>
                   <span className="text-white font-semibold">Hra bez hraníc</span>
                   <span className="text-white font-semibold">PowerPlay Studio</span>
+                  <span className="text-white font-semibold">FPVaI</span>
+                  <span className="text-white font-semibold">Podcast Link</span>
+                  <span className="text-white font-semibold">Muziker</span>
+                  <span className="text-white font-semibold">WebGlobe</span>
+                  <span className="text-white font-semibold">Catering Service Nitra</span>
                 </div>
               </div>
             </div>
