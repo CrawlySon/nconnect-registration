@@ -68,7 +68,7 @@ export default function HomePage() {
                 </h1>
                 
                 <p className="text-lg text-nconnect-muted max-w-lg">
-                  Pripoj sa k nám na druhom ročníku technologickej konferencie, 
+                  Pripoj sa k nám na treťom ročníku technologickej konferencie,
                   ktorá spája študentov s odborníkmi z praxe.
                 </p>
               </div>
