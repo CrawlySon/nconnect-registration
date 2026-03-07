@@ -66,7 +66,7 @@ export default function AdminEmailTestPage() {
         setResult({
           success: false,
           message: data.skipped
-            ? 'Email nie je nakonfigurovany'
+            ? 'Email nie je nakonfigurovaný'
             : data.error || 'Odoslanie zlyhalo',
         });
       } else {
@@ -78,7 +78,7 @@ export default function AdminEmailTestPage() {
     } catch (err) {
       setResult({
         success: false,
-        message: 'Chyba pri odosielani',
+        message: 'Chyba pri odosielaní',
       });
     } finally {
       setIsSending(false);
@@ -109,7 +109,7 @@ export default function AdminEmailTestPage() {
               Test emailov
             </h1>
             <p className="text-nconnect-muted mt-1">
-              Over, ze emaily sa odosielaju spravne
+              Over, že emaily sa odosielajú správne
             </p>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function AdminEmailTestPage() {
               <h2 className={`text-lg font-semibold ${
                 status?.configured ? 'text-green-400' : 'text-red-400'
               }`}>
-                {status?.configured ? 'Email nakonfigurovany' : 'Email nie je nakonfigurovany'}
+                {status?.configured ? 'Email nakonfigurovaný' : 'Email nie je nakonfigurovaný'}
               </h2>
               <p className="text-nconnect-muted text-sm">{status?.message}</p>
             </div>
@@ -140,7 +140,7 @@ export default function AdminEmailTestPage() {
 
           {status?.instructions && (
             <div className="mt-4 pt-4 border-t border-white/10">
-              <h3 className="text-white font-medium mb-2">Instrukcie na nastavenie:</h3>
+              <h3 className="text-white font-medium mb-2">Inštrukcie na nastavenie:</h3>
               <ol className="text-nconnect-muted text-sm space-y-1 list-decimal list-inside">
                 {status.instructions.map((instruction, i) => (
                   <li key={i}>{instruction}</li>
@@ -154,7 +154,7 @@ export default function AdminEmailTestPage() {
         <div className="glass-card">
           <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Mail className="w-5 h-5" />
-            Odoslat testovaci email
+            Odoslať testovací email
           </h2>
 
           <div className="space-y-4">
@@ -173,7 +173,7 @@ export default function AdminEmailTestPage() {
 
             <div>
               <label className="block text-sm font-medium text-nconnect-muted mb-2">
-                Meno (pre personalizaciu)
+                Meno (pre personalizáciu)
               </label>
               <input
                 type="text"
@@ -211,12 +211,12 @@ export default function AdminEmailTestPage() {
               {isSending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Odosielam...
+                  Odosielam\u2026
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  Odoslat testovaci email
+                  Odoslať testovací email
                 </>
               )}
             </button>
@@ -229,9 +229,9 @@ export default function AdminEmailTestPage() {
             <AlertCircle className="w-5 h-5 text-nconnect-accent flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-nconnect-muted text-sm">
-                Pre odosielanie emailov pouzivame <strong className="text-white">Resend</strong>.
-                Uisti sa, ze mas nastaveny <code className="bg-nconnect-primary px-1 rounded">RESEND_API_KEY</code> v
-                subore <code className="bg-nconnect-primary px-1 rounded">.env.local</code>.
+                Pre odosielanie emailov používame <strong className="text-white">Resend</strong>.
+                Uisti sa, že máš nastavený <code className="bg-nconnect-primary px-1 rounded">RESEND_API_KEY</code> v
+                súbore <code className="bg-nconnect-primary px-1 rounded">.env.local</code>.
               </p>
               <a
                 href="https://resend.com/docs"
@@ -239,7 +239,7 @@ export default function AdminEmailTestPage() {
                 rel="noopener noreferrer"
                 className="text-nconnect-accent text-sm hover:underline mt-2 inline-block"
               >
-                Resend dokumentacia →
+                Resend dokumentácia →
               </a>
             </div>
           </div>

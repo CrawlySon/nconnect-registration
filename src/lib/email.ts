@@ -12,7 +12,8 @@ function getResend(): Resend | null {
   return resend;
 }
 
-const FROM_EMAIL = 'nConnect <noreply@nconnect.sk>';
+// TODO: Po overení domény nconnect.sk v Resend zmeniť na: 'nConnect <noreply@nconnect.sk>'
+const FROM_EMAIL = 'nConnect <onboarding@resend.dev>';
 
 interface SendEmailParams {
   to: string;

@@ -111,14 +111,7 @@ export default function AdminSessionsPage() {
             className="btn-secondary flex items-center gap-2"
           >
             <Table className="w-4 h-4" />
-            Hromadna editacia
-          </Link>
-          <Link
-            href="/admin/sessions/new"
-            className="btn-primary flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nova prednaska
+            Hromadná editácia
           </Link>
         </div>
       </div>

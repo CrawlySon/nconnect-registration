@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { verifyPassword } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    const { email, password } = await request.json();
 
-    if (!email) {
+    if (!email || !password) {
       return NextResponse.json(
-        { error: 'Email je povinný' },
+        { error: 'Email a heslo sú povinné' },
         { status: 400 }
       );
     }
 
     const supabase = createServerClient();
 
-    // Find attendee by email
     const { data: attendee, error } = await supabase
       .from('attendees')
-      .select('id, name, email')
+      .select('id, name, email, password_hash')
       .eq('email', email.toLowerCase())
       .single();
 
@@ -30,8 +30,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // For simplicity, we'll do direct login without magic link
-    // In production, you'd send a magic link email here
+    const isValid = await verifyPassword(password, attendee.password_hash);
+    if (!isValid) {
+      return NextResponse.json(
+        { error: 'Nesprávne heslo.' },
+        { status: 401 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       attendeeId: attendee.id,

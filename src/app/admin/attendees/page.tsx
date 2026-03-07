@@ -155,7 +155,7 @@ export default function AdminAttendeesPage() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-nconnect-muted" />
               <input
                 type="text"
-                placeholder="Hladaj podla mena, emailu alebo firmy..."
+                placeholder="Hľadaj podľa mena, emailu alebo firmy..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -167,7 +167,7 @@ export default function AdminAttendeesPage() {
               className="glass-button flex items-center gap-2"
             >
               <Search className="w-4 h-4" />
-              Hladat
+              Hľadať
             </button>
             {search && (
               <button
@@ -178,7 +178,7 @@ export default function AdminAttendeesPage() {
                 }}
                 className="px-4 py-2 text-nconnect-muted hover:text-white transition-colors"
               >
-                Zrusit filter
+                Zrušiť filter
               </button>
             )}
           </div>
@@ -192,9 +192,9 @@ export default function AdminAttendeesPage() {
         ) : attendees.length === 0 ? (
           <div className="glass-card text-center py-12">
             <Users className="w-12 h-12 text-nconnect-muted mx-auto mb-4" />
-            <p className="text-white text-lg">Ziadni ucastnici nenajdeni</p>
+            <p className="text-white text-lg">Žiadni účastníci nenájdení</p>
             <p className="text-nconnect-muted mt-2">
-              {search ? 'Skus zmenit vyhladavaci vyraz' : 'Zatial sa nikto nezaregistroval'}
+              {search ? 'Skús zmeniť vyhľadávací výraz' : 'Zatial sa nikto nezaregistroval'}
             </p>
           </div>
         ) : (
@@ -206,8 +206,8 @@ export default function AdminAttendeesPage() {
                     <th>Meno</th>
                     <th>Email</th>
                     <th>Firma</th>
-                    <th>Registracia</th>
-                    <th>Prednasky</th>
+                    <th>Registrácia</th>
+                    <th>Prednášky</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -226,14 +226,14 @@ export default function AdminAttendeesPage() {
                             ? 'bg-green-500/20 text-green-400'
                             : 'bg-nconnect-secondary/30 text-nconnect-muted'
                         }`}>
-                          {attendee.registration_count} prednasok
+                          {attendee.registration_count} prednášok
                         </span>
                       </td>
                       <td>
                         <button
                           onClick={() => loadAttendeeDetail(attendee.id)}
                           className="p-2 hover:bg-white/5 rounded-lg transition-colors"
-                          title="Zobrazit detail"
+                          title="Zobraziť detail"
                         >
                           <Eye className="w-4 h-4 text-nconnect-accent" />
                         </button>
@@ -301,7 +301,7 @@ export default function AdminAttendeesPage() {
                       </div>
                       <p className="text-nconnect-muted text-sm mt-2">
                         <Calendar className="w-4 h-4 inline mr-1" />
-                        Registracia: {new Date(selectedAttendee.created_at).toLocaleDateString('sk-SK')}
+                        Registrácia: {new Date(selectedAttendee.created_at).toLocaleDateString('sk-SK')}
                       </p>
                     </div>
                     <button
@@ -313,12 +313,12 @@ export default function AdminAttendeesPage() {
                   </div>
 
                   <h3 className="text-lg font-semibold text-white mb-4">
-                    Registrovane prednasky ({selectedAttendee.registrations.length})
+                    Registrované prednášky ({selectedAttendee.registrations.length})
                   </h3>
 
                   {selectedAttendee.registrations.length === 0 ? (
                     <p className="text-nconnect-muted text-center py-6">
-                      Ziadne registrovane prednasky
+                      Žiadne registrované prednášky
                     </p>
                   ) : (
                     <div className="space-y-3">
@@ -356,7 +356,7 @@ export default function AdminAttendeesPage() {
                     onClick={() => setSelectedAttendee(null)}
                     className="glass-button w-full mt-6"
                   >
-                    Zavriet
+                    Zatvoriť
                   </button>
                 </>
               )}

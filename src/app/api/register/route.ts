@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { sendEmail } from '@/lib/email';
+import { hashPassword } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, name, company } = await request.json();
+    const { email, name, company, password } = await request.json();
 
-    if (!email || !name) {
+    if (!email || !name || !password) {
       return NextResponse.json(
-        { error: 'Email a meno sú povinné' },
+        { error: 'Email, meno a heslo sú povinné' },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: 'Heslo musí mať aspoň 6 znakov' },
         { status: 400 }
       );
     }
@@ -25,21 +33,21 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existing) {
-      // Return existing attendee
-      return NextResponse.json({
-        success: true,
-        attendeeId: existing.id,
-        message: 'Účet už existuje',
-      });
+      return NextResponse.json(
+        { error: 'Tento email je už zaregistrovaný. Použi prihlásenie.', alreadyExists: true },
+        { status: 409 }
+      );
     }
 
-    // Create new attendee
+    // Hash password and create attendee
+    const passwordHash = await hashPassword(password);
     const { data: attendee, error } = await supabase
       .from('attendees')
       .insert({
         email: email.toLowerCase(),
         name,
         company: company || null,
+        password_hash: passwordHash,
       })
       .select()
       .single();
@@ -62,7 +70,6 @@ export async function POST(request: NextRequest) {
       });
     } catch (emailError) {
       console.error('Email send error:', emailError);
-      // Don't fail registration if email fails
     }
 
     return NextResponse.json({

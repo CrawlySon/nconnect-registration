@@ -30,9 +30,9 @@ export default function RootLayout({
               <div className="flex items-center justify-between h-16">
                 <a href="/" className="flex items-center gap-3">
                   <img
-                    src="/logo.png"
+                    src="/nconnect26 logo medium vertical white.png"
                     alt="nConnect26"
-                    className="h-10 w-auto"
+                    className="h-12 w-auto"
                   />
                 </a>
                 
@@ -65,6 +65,9 @@ export default function RootLayout({
                 <div className="flex items-center gap-4">
                   <a href="mailto:info@nconnect.sk" className="text-nconnect-muted hover:text-nconnect-accent transition-colors text-sm">
                     info@nconnect.sk
+                  </a>
+                  <a href="/admin" className="text-nconnect-muted/30 hover:text-nconnect-muted transition-colors text-xs">
+                    admin
                   </a>
                 </div>
               </div>

@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
       const { error: insertError } = await supabase
         .from('registrations')
-        .insert(registrationsToInsert);
+        .upsert(registrationsToInsert, { onConflict: 'attendee_id,session_id', ignoreDuplicates: true });
 
       if (insertError) {
         console.error('Insert error:', insertError);

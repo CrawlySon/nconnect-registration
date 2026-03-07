@@ -94,13 +94,6 @@ export default function AdminDashboard() {
         </div>
         
         <div className="flex items-center gap-3">
-          <Link 
-            href="/admin/sessions/new" 
-            className="btn-primary flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Nová prednáška
-          </Link>
           <button
             onClick={handleLogout}
             className="p-2 hover:bg-nconnect-surface rounded-lg transition-colors text-nconnect-muted hover:text-white"
@@ -202,7 +195,7 @@ export default function AdminDashboard() {
             >
               <div className="flex items-center gap-3">
                 <Play className="w-5 h-5 text-nconnect-accent" />
-                <span className="text-white">Live demo rezim</span>
+                <span className="text-white">Live demo režim</span>
               </div>
               <ChevronRight className="w-5 h-5 text-nconnect-muted" />
             </Link>
@@ -224,7 +217,7 @@ export default function AdminDashboard() {
             >
               <div className="flex items-center gap-3">
                 <FileSpreadsheet className="w-5 h-5 text-nconnect-accent" />
-                <span className="text-white">Export ucastnikov (CSV)</span>
+                <span className="text-white">Export účastníkov (CSV)</span>
               </div>
               <ChevronRight className="w-5 h-5 text-nconnect-muted" />
             </button>
@@ -235,7 +228,7 @@ export default function AdminDashboard() {
             >
               <div className="flex items-center gap-3">
                 <Download className="w-5 h-5 text-nconnect-accent" />
-                <span className="text-white">Export registracii (CSV)</span>
+                <span className="text-white">Export registrácií (CSV)</span>
               </div>
               <ChevronRight className="w-5 h-5 text-nconnect-muted" />
             </button>

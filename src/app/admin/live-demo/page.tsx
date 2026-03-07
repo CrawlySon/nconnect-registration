@@ -54,7 +54,7 @@ export default function AdminLiveDemoPage() {
 
   const handleLaunchDemo = () => {
     if (!selectedAttendee) {
-      alert('Vyber ucastnika');
+      alert('Vyber účastníka');
       return;
     }
 
@@ -102,10 +102,10 @@ export default function AdminLiveDemoPage() {
           </Link>
           <div>
             <h1 className="text-3xl font-display font-bold text-white">
-              Live Demo Rezim
+              Live Demo Režim
             </h1>
             <p className="text-nconnect-muted mt-1">
-              Otestuj live timeline z pohladu lubovolneho ucastnika
+              Otestuj live timeline z pohľadu ľubovoľného účastníka
             </p>
           </div>
         </div>
@@ -115,14 +115,14 @@ export default function AdminLiveDemoPage() {
           <div className="glass-card">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <Settings className="w-5 h-5" />
-              Nastavenia demo rezimu
+              Nastavenia demo režimu
             </h2>
 
             {/* Date selection */}
             <div className="mb-6">
               <label className="block text-sm font-medium text-nconnect-muted mb-2">
                 <Calendar className="w-4 h-4 inline mr-2" />
-                Datum konferencie
+                Dátum konferencie
               </label>
               <input
                 type="date"
@@ -136,7 +136,7 @@ export default function AdminLiveDemoPage() {
             <div className="mb-6">
               <label className="block text-sm font-medium text-nconnect-muted mb-2">
                 <Clock className="w-4 h-4 inline mr-2" />
-                Simulovany cas
+                Simulovaný čas
               </label>
               <input
                 type="time"
@@ -165,7 +165,7 @@ export default function AdminLiveDemoPage() {
 
             {/* Selected time preview */}
             <div className="bg-nconnect-primary/50 rounded-lg p-4 mb-6">
-              <p className="text-nconnect-muted text-sm mb-1">Simulovany datum a cas:</p>
+              <p className="text-nconnect-muted text-sm mb-1">Simulovaný dátum a čas:</p>
               <p className="text-white font-bold text-lg">
                 {new Date(`${demoDate}T${demoTime}`).toLocaleString('sk-SK', {
                   weekday: 'long',
@@ -185,7 +185,7 @@ export default function AdminLiveDemoPage() {
               className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play className="w-5 h-5" />
-              Spustit demo
+              Spustiť demo
             </button>
           </div>
 
@@ -193,13 +193,13 @@ export default function AdminLiveDemoPage() {
           <div className="glass-card">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <User className="w-5 h-5" />
-              Vyber ucastnika
+              Vyber účastníka
             </h2>
 
             {/* Search */}
             <input
               type="text"
-              placeholder="Hladat podla mena alebo emailu..."
+              placeholder="Hľadať podľa mena alebo emailu..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="glass-input mb-4"
@@ -209,7 +209,7 @@ export default function AdminLiveDemoPage() {
             <div className="space-y-2 max-h-[400px] overflow-auto">
               {filteredAttendees.length === 0 ? (
                 <p className="text-nconnect-muted text-center py-4">
-                  Ziadni ucastnici nenajdeni
+                  Žiadni účastníci nenájdení
                 </p>
               ) : (
                 filteredAttendees.map(attendee => (
@@ -238,7 +238,7 @@ export default function AdminLiveDemoPage() {
                   className="glass-button w-full flex items-center justify-center gap-2"
                 >
                   <Eye className="w-4 h-4" />
-                  Zobrazit registracie ucastnika
+                  Zobraziť registrácie účastníka
                 </a>
               </div>
             )}
@@ -247,12 +247,12 @@ export default function AdminLiveDemoPage() {
 
         {/* Instructions */}
         <div className="glass-panel mt-8">
-          <h3 className="text-white font-medium mb-2">Ako pouzivat demo rezim:</h3>
+          <h3 className="text-white font-medium mb-2">Ako používať demo režim:</h3>
           <ol className="text-nconnect-muted text-sm space-y-1 list-decimal list-inside">
-            <li>Vyber datum a cas, ktory chces simulovat</li>
-            <li>Vyber ucastnika, z ktoreho pohladu chces vidiet timeline</li>
-            <li>Klikni na "Spustit demo" - otvori sa nove okno s live timeline</li>
-            <li>Timeline sa bude zobrazovat podla nastaveneho casu</li>
+            <li>Vyber dátum a čas, ktorý chceš simulovať</li>
+            <li>Vyber účastníka, z ktorého pohľadu chceš vidieť timeline</li>
+            <li>Klikni na "Spustiť demo" - otvorí sa nové okno s live timeline</li>
+            <li>Timeline sa bude zobrazovať podľa nastaveného času</li>
           </ol>
         </div>
       </div>

@@ -105,7 +105,7 @@ export default function BulkEditSessionsPage() {
   const handleSaveAll = async () => {
     const changedSessions = sessions.filter(s => s._changed);
     if (changedSessions.length === 0) {
-      showToast('Ziadne zmeny na ulozenie', 'error');
+      showToast('Žiadne zmeny na uloženie', 'error');
       return;
     }
 
@@ -146,9 +146,9 @@ export default function BulkEditSessionsPage() {
         };
       }));
 
-      showToast(`Uspesne ulozene ${data.updated} prednasok`, 'success');
+      showToast(`Úspešne uložených ${data.updated} prednášok`, 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Ulozenie zlyhalo', 'error');
+      showToast(err instanceof Error ? err.message : 'Uloženie zlyhalo', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -206,10 +206,10 @@ export default function BulkEditSessionsPage() {
             </Link>
             <div>
               <h1 className="text-3xl font-display font-bold text-white">
-                Hromadna editacia
+                Hromadná editácia
               </h1>
               <p className="text-nconnect-muted mt-1">
-                Uprav viacero prednasok naraz a uloz vsetko jednym klikom
+                Uprav viacero prednášok naraz a ulož všetko jedným klikom
               </p>
             </div>
           </div>
@@ -218,7 +218,7 @@ export default function BulkEditSessionsPage() {
             {changedCount > 0 && (
               <div className="flex items-center gap-2 px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-lg text-sm">
                 <AlertTriangle className="w-4 h-4" />
-                {changedCount} zmen
+                {changedCount} zmien
               </div>
             )}
             <button
@@ -227,7 +227,7 @@ export default function BulkEditSessionsPage() {
               className="glass-button flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RotateCcw className="w-4 h-4" />
-              Vratit zmeny
+              Vrátiť zmeny
             </button>
             <button
               onClick={handleSaveAll}
@@ -239,7 +239,7 @@ export default function BulkEditSessionsPage() {
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              Ulozit vsetko
+              Uložiť všetko
             </button>
           </div>
         </div>
@@ -247,7 +247,7 @@ export default function BulkEditSessionsPage() {
         {/* Instructions */}
         <div className="glass-panel mb-6">
           <p className="text-nconnect-muted text-sm">
-            Klikni do pola pre upravu. Zmenene polia su zvyraznene. Po dokonceni klikni na "Ulozit vsetko".
+            Klikni do poľa pre úpravu. Zmenené polia sú zvýraznené. Po dokončení klikni na "Uložiť všetko".
           </p>
         </div>
 
@@ -269,7 +269,7 @@ export default function BulkEditSessionsPage() {
                   <thead>
                     <tr>
                       <th className="w-12">Stage</th>
-                      <th className="min-w-[300px]">Nazov prednasky</th>
+                      <th className="min-w-[300px]">Názov prednášky</th>
                       <th className="min-w-[150px]">Speaker</th>
                       <th className="min-w-[150px]">Firma</th>
                       <th className="w-24">Kapacita</th>
@@ -376,7 +376,7 @@ export default function BulkEditSessionsPage() {
               ) : (
                 <Save className="w-4 h-4" />
               )}
-              Ulozit ({changedCount})
+              Uložiť ({changedCount})
             </button>
           </div>
         )}

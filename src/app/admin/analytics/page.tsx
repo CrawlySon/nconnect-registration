@@ -88,7 +88,7 @@ export default function AdminAnalyticsPage() {
       return (
         <div className="glass-panel text-sm">
           <p className="text-white font-medium">{formatDate(label)}</p>
-          <p className="text-nconnect-accent">{payload[0].value} registracii</p>
+          <p className="text-nconnect-accent">{payload[0].value} registrácií</p>
         </div>
       );
     }
@@ -120,7 +120,7 @@ export default function AdminAnalyticsPage() {
                 Analytika
               </h1>
               <p className="text-nconnect-muted mt-1">
-                Prehladova statistika registracii
+                Prehľadová štatistika registrácií
               </p>
             </div>
           </div>
@@ -135,7 +135,7 @@ export default function AdminAnalyticsPage() {
               </div>
             </div>
             <p className="text-3xl font-bold text-white">{analytics?.stats.totalAttendees || 0}</p>
-            <p className="text-nconnect-muted text-sm">Celkom ucastnikov</p>
+            <p className="text-nconnect-muted text-sm">Celkom účastníkov</p>
           </div>
 
           <div className="stat-card">
@@ -145,7 +145,7 @@ export default function AdminAnalyticsPage() {
               </div>
             </div>
             <p className="text-3xl font-bold text-white">{analytics?.stats.totalRegistrations || 0}</p>
-            <p className="text-nconnect-muted text-sm">Celkom registracii</p>
+            <p className="text-nconnect-muted text-sm">Celkom registrácií</p>
           </div>
 
           <div className="stat-card">
@@ -155,7 +155,7 @@ export default function AdminAnalyticsPage() {
               </div>
             </div>
             <p className="text-3xl font-bold text-white">{analytics?.stats.avgSessionsPerAttendee || 0}</p>
-            <p className="text-nconnect-muted text-sm">Priemer prednasok/ucastnik</p>
+            <p className="text-nconnect-muted text-sm">Priemer prednášok/účastník</p>
           </div>
 
           <div className="stat-card">
@@ -165,7 +165,7 @@ export default function AdminAnalyticsPage() {
               </div>
             </div>
             <p className="text-3xl font-bold text-white">{analytics?.stats.filteredRegistrations || 0}</p>
-            <p className="text-nconnect-muted text-sm">Filtrovane registracie</p>
+            <p className="text-nconnect-muted text-sm">Filtrované registrácie</p>
           </div>
         </div>
 
@@ -186,20 +186,20 @@ export default function AdminAnalyticsPage() {
                 }}
                 className="glass-input"
               >
-                <option value="">Vsetky stage</option>
+                <option value="">Všetky stage</option>
                 {analytics?.stages.map(stage => (
                   <option key={stage.id} value={stage.id}>{stage.name}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-nconnect-muted mb-2">Prednaska</label>
+              <label className="block text-sm font-medium text-nconnect-muted mb-2">Prednáška</label>
               <select
                 value={selectedSession}
                 onChange={(e) => setSelectedSession(e.target.value)}
                 className="glass-input"
               >
-                <option value="">Vsetky prednasky</option>
+                <option value="">Všetky prednášky</option>
                 {analytics?.sessions.map(session => (
                   <option key={session.id} value={session.id}>{session.title}</option>
                 ))}
@@ -213,7 +213,7 @@ export default function AdminAnalyticsPage() {
           <div className="glass-card">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
-              Registracie po dnoch
+              Registrácie po dňoch
             </h3>
 
             {analytics?.dailyRegistrations && analytics.dailyRegistrations.length > 0 ? (
@@ -245,7 +245,7 @@ export default function AdminAnalyticsPage() {
               </div>
             ) : (
               <div className="h-80 flex items-center justify-center text-nconnect-muted">
-                Ziadne data pre zvolene filtre
+                Žiadne dáta pre zvolené filtre
               </div>
             )}
           </div>
@@ -254,7 +254,7 @@ export default function AdminAnalyticsPage() {
           <div className="glass-card">
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
               <TrendingUp className="w-5 h-5" />
-              Top 10 najpopularnejsich prednasok
+              Top 10 najpopulárnejších prednášok
             </h3>
 
             {analytics?.topSessions && analytics.topSessions.length > 0 ? (
@@ -290,7 +290,7 @@ export default function AdminAnalyticsPage() {
               </div>
             ) : (
               <div className="h-40 flex items-center justify-center text-nconnect-muted">
-                Ziadne data
+                Žiadne dáta
               </div>
             )}
           </div>

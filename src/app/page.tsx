@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, MapPin, Users, ArrowRight, Loader2 } from 'lucide-react';
+import { Calendar, MapPin, Users, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function HomePage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,16 +23,19 @@ export default function HomePage() {
       const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name, company }),
+        body: JSON.stringify({ email, name, company, password }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        if (data.alreadyExists) {
+          setError('already_exists');
+          return;
+        }
         throw new Error(data.error || 'Registrácia zlyhala');
       }
 
-      // Redirect to session selection with attendee ID
       router.push(`/sessions?attendee=${data.attendeeId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Niečo sa pokazilo');
@@ -115,91 +120,120 @@ export default function HomePage() {
             {/* Right column - Registration form */}
             <div className="lg:pl-8">
               <div className="bg-nconnect-surface/80 backdrop-blur border border-nconnect-secondary/30 rounded-2xl p-8 shadow-2xl">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-display font-bold text-white mb-2">
-                    Zaregistruj sa
-                  </h2>
-                  <p className="text-nconnect-muted">
-                    Vyplň údaje a vyber si prednášky, ktoré chceš navštíviť.
-                  </p>
-                </div>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
-                      Email *
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      placeholder="tvoj@email.sk"
-                      className="input-field"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-white mb-2">
-                      Meno a priezvisko *
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      placeholder="Ján Novák"
-                      className="input-field"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="company" className="block text-sm font-medium text-white mb-2">
-                      Firma / Škola
-                    </label>
-                    <input
-                      type="text"
-                      id="company"
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      placeholder="Voliteľné"
-                      className="input-field"
-                    />
-                  </div>
-
-                  {error && (
-                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">
-                      {error}
+                    <>
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-display font-bold text-white mb-2">
+                        Zaregistruj sa
+                      </h2>
+                      <p className="text-nconnect-muted">
+                        Vyplň údaje a vyber si prednášky, ktoré chceš navštíviť.
+                      </p>
                     </div>
-                  )}
 
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="btn-primary w-full flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Registrujem...
-                      </>
-                    ) : (
-                      <>
-                        Pokračovať na výber prednášok
-                        <ArrowRight className="w-5 h-5" />
-                      </>
-                    )}
-                  </button>
-                </form>
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
+                          Email *
+                        </label>
+                        <input
+                          type="email"
+                          id="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          placeholder="tvoj@email.sk"
+                          className="input-field"
+                        />
+                      </div>
 
-                <p className="mt-6 text-center text-nconnect-muted text-sm">
-                  Už si registrovaný?{' '}
-                  <a href="/login" className="text-nconnect-accent hover:underline">
-                    Prihlásiť sa
-                  </a>
-                </p>
+                      <div>
+                        <label htmlFor="name" className="block text-sm font-medium text-white mb-2">
+                          Meno a priezvisko *
+                        </label>
+                        <input
+                          type="text"
+                          id="name"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                          placeholder="Ján Novák"
+                          className="input-field"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="company" className="block text-sm font-medium text-white mb-2">
+                          Firma / Škola
+                        </label>
+                        <input
+                          type="text"
+                          id="company"
+                          value={company}
+                          onChange={(e) => setCompany(e.target.value)}
+                          placeholder="Voliteľné"
+                          className="input-field"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="password" className="block text-sm font-medium text-white mb-2">
+                          Heslo *
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            id="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            required
+                            minLength={4}
+                            placeholder="Heslo pre prihlásenie"
+                            className="input-field pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-nconnect-muted hover:text-white transition-colors"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {error && (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">
+                          {error === 'already_exists'
+                            ? 'Tento email je už zaregistrovaný. Použi prihlásenie nižšie.'
+                            : error}
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="btn-primary w-full flex items-center justify-center gap-2"
+                      >
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Registrujem...
+                          </>
+                        ) : (
+                          <>
+                            Pokračovať na výber prednášok
+                            <ArrowRight className="w-5 h-5" />
+                          </>
+                        )}
+                      </button>
+                    </form>
+
+                    <p className="mt-6 text-center text-nconnect-muted text-sm">
+                      Už si registrovaný?{' '}
+                      <a href="/login" className="text-nconnect-accent hover:underline">
+                        Prihlásiť sa
+                      </a>
+                    </p>
+                  </>
               </div>
             </div>
           </div>
