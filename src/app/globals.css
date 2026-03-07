@@ -91,8 +91,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Input styles */
-.input-field {
-  @apply w-full bg-nconnect-surface border border-nconnect-secondary/50 rounded-lg px-4 py-3 text-white placeholder-nconnect-muted focus:border-nconnect-accent focus:ring-1 focus:ring-nconnect-accent transition-colors;
+@layer components {
+  .input-field {
+    @apply w-full bg-nconnect-surface border border-nconnect-secondary/50 rounded-lg px-4 py-3 text-white placeholder-nconnect-muted focus:border-nconnect-accent focus:ring-1 focus:ring-nconnect-accent transition-colors;
+  }
 }
 
 /* Session card states */
