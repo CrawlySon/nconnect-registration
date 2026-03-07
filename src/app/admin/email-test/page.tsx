@@ -229,18 +229,10 @@ export default function AdminEmailTestPage() {
             <AlertCircle className="w-5 h-5 text-nconnect-accent flex-shrink-0 mt-0.5" />
             <div>
               <p className="text-nconnect-muted text-sm">
-                Pre odosielanie emailov používame <strong className="text-white">Resend</strong>.
-                Uisti sa, že máš nastavený <code className="bg-nconnect-primary px-1 rounded">RESEND_API_KEY</code> v
+                Pre odosielanie emailov používame <strong className="text-white">SMTP (Nodemailer)</strong>.
+                Uisti sa, že máš nastavené <code className="bg-nconnect-primary px-1 rounded">SMTP_HOST</code>, <code className="bg-nconnect-primary px-1 rounded">SMTP_PORT</code>, <code className="bg-nconnect-primary px-1 rounded">SMTP_USER</code> a <code className="bg-nconnect-primary px-1 rounded">SMTP_PASS</code> v
                 súbore <code className="bg-nconnect-primary px-1 rounded">.env.local</code>.
               </p>
-              <a
-                href="https://resend.com/docs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-nconnect-accent text-sm hover:underline mt-2 inline-block"
-              >
-                Resend dokumentácia →
-              </a>
             </div>
           </div>
         </div>

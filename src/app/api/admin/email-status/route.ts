@@ -9,13 +9,14 @@ export async function GET() {
   return NextResponse.json({
     configured,
     message: configured
-      ? 'Email je nakonfigurovany a pripraveny na odosielanie'
-      : 'Email nie je nakonfigurovany - chyba RESEND_API_KEY',
+      ? 'SMTP email je nakonfigurovaný a pripravený na odosielanie'
+      : 'Email nie je nakonfigurovaný - chýbajú SMTP údaje',
     instructions: configured ? null : [
-      '1. Vytvor ucet na https://resend.com',
-      '2. Pridaj a over domenu nconnect.sk',
-      '3. Nastav RESEND_API_KEY v .env.local',
-      '4. Restartuj aplikaciu',
+      '1. Nastav SMTP_HOST v .env.local (napr. smtp.m1.websupport.sk)',
+      '2. Nastav SMTP_PORT v .env.local (napr. 465)',
+      '3. Nastav SMTP_USER v .env.local (napr. registracia@nconnect.sk)',
+      '4. Nastav SMTP_PASS v .env.local',
+      '5. Reštartuj aplikáciu',
     ],
   });
 }

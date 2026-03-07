@@ -1,19 +1,27 @@
-import { Resend } from 'resend';
+import nodemailer from 'nodemailer';
 import { Session } from '@/types';
 import { formatTime } from './utils';
 
-// Lazy initialization to avoid build errors
-let resend: Resend | null = null;
+// Lazy initialization of SMTP transporter
+let transporter: nodemailer.Transporter | null = null;
 
-function getResend(): Resend | null {
-  if (!resend && process.env.RESEND_API_KEY) {
-    resend = new Resend(process.env.RESEND_API_KEY);
+function getTransporter(): nodemailer.Transporter | null {
+  if (!transporter && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 465,
+      secure: (Number(process.env.SMTP_PORT) || 465) === 465, // true pre port 465 (SSL)
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
   }
-  return resend;
+  return transporter;
 }
 
-// TODO: Po overení domény nconnect.sk v Resend zmeniť na: 'nConnect <noreply@nconnect.sk>'
-const FROM_EMAIL = 'nConnect <onboarding@resend.dev>';
+const FROM_EMAIL = process.env.SMTP_USER || 'registracia@nconnect.sk';
+const FROM_NAME = 'nConnect26';
 
 interface SendEmailParams {
   to: string;
@@ -148,33 +156,25 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
   `;
 
   try {
-    const resendClient = getResend();
+    const smtp = getTransporter();
 
-    if (!resendClient) {
-      console.log('[EMAIL] Resend not configured - RESEND_API_KEY is missing');
-      console.log('[EMAIL] To enable email sending:');
-      console.log('[EMAIL] 1. Create account at https://resend.com');
-      console.log('[EMAIL] 2. Add and verify domain nconnect.sk');
-      console.log('[EMAIL] 3. Set RESEND_API_KEY in .env.local');
+    if (!smtp) {
+      console.log('[EMAIL] SMTP not configured - missing SMTP_HOST, SMTP_USER or SMTP_PASS');
+      console.log('[EMAIL] Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS in .env.local');
       return { success: false, error: 'Email not configured', skipped: true };
     }
 
     console.log(`[EMAIL] Sending ${type} email to ${to}`);
 
-    const { data, error } = await resendClient.emails.send({
-      from: FROM_EMAIL,
-      to: [to],
+    const info = await smtp.sendMail({
+      from: `${FROM_NAME} <${FROM_EMAIL}>`,
+      to,
       subject,
       html,
     });
 
-    if (error) {
-      console.error('[EMAIL] Send error:', error);
-      return { success: false, error };
-    }
-
-    console.log(`[EMAIL] Successfully sent to ${to}, ID: ${data?.id}`);
-    return { success: true, data };
+    console.log(`[EMAIL] Successfully sent to ${to}, Message ID: ${info.messageId}`);
+    return { success: true, data: { id: info.messageId } };
   } catch (error) {
     console.error('[EMAIL] Exception:', error);
     return { success: false, error };
@@ -183,5 +183,5 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
 
 // Helper to check if email is configured
 export function isEmailConfigured(): boolean {
-  return !!process.env.RESEND_API_KEY;
+  return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 }
