@@ -122,8 +122,8 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
       <!-- Add all to calendar -->
       <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 16px auto 0 auto;">
         <tr>
-          <td style="border-radius: 8px; background-color: #0A1628;" align="center">
-            <a href="${icsUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <td align="center">
+            <a href="${icsUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #0A1628; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
               📅 Stiahnuť všetky do kalendára (.ics)
             </a>
           </td>
@@ -167,11 +167,11 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
 
             ${sessionsHtml}
 
-            <!-- CTA Button (bulletproof - table based for email client compatibility) -->
+            <!-- CTA Button -->
             <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 32px auto 0 auto;">
               <tr>
-                <td style="border-radius: 8px; background-color: #FF6B35;" align="center">
-                  <a href="${appUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                <td align="center">
+                  <a href="${appUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; background-color: #FF6B35; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
                     Spravovať prednášky →
                   </a>
                 </td>
