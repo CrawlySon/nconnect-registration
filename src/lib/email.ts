@@ -107,7 +107,7 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background: #f1f5f9;">
         <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
           <!-- Header -->
-          <div style="background: linear-gradient(135deg, #0A1628 0%, #1E3A5F 100%); padding: 32px; text-align: center;">
+          <div style="background-color: #0A1628; padding: 32px; text-align: center;">
             <h1 style="color: #00D4FF; margin: 0; font-size: 32px; font-weight: bold;">nConnect<span style="color: #FF6B35;">26</span></h1>
             <p style="color: #94a3b8; margin: 12px 0 0 0; font-size: 14px;">
               📍 26. marca 2026 • Študentské centrum UKF Nitra
@@ -126,12 +126,16 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
 
             ${sessionsHtml}
 
-            <!-- CTA Button -->
-            <div style="text-align: center; margin-top: 32px;">
-              <a href="${appUrl}" style="display: inline-block; background: linear-gradient(135deg, #FF6B35 0%, #f97316 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.4);">
-                Spravovať prednášky →
-              </a>
-            </div>
+            <!-- CTA Button (bulletproof - table based for email client compatibility) -->
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 32px auto 0 auto;">
+              <tr>
+                <td style="border-radius: 8px; background-color: #FF6B35;" align="center">
+                  <a href="${appUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+                    Spravovať prednášky →
+                  </a>
+                </td>
+              </tr>
+            </table>
 
             <!-- Info box -->
             <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 16px; margin-top: 32px;">
