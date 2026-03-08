@@ -113,11 +113,12 @@ export default function HomePage() {
                   <span className="text-white font-semibold">GymBeam</span>
                   <span className="text-white font-semibold">Hra bez hraníc</span>
                   <span className="text-white font-semibold">PowerPlay Studio</span>
-                  <span className="text-white font-semibold">FPVaI</span>
+                  <span className="text-white font-semibold">Fakulta prírodných vied a informatiky UKF v Nitre</span>
                   <span className="text-white font-semibold">Podcast Link</span>
                   <span className="text-white font-semibold">Muziker</span>
                   <span className="text-white font-semibold">WebGlobe</span>
                   <span className="text-white font-semibold">Catering Service Nitra</span>
+                  <span className="text-white font-semibold">Nitrianska realitná kancelária</span>
                 </div>
               </div>
             </div>
