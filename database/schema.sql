@@ -151,6 +151,32 @@ CREATE POLICY "Service role can manage registrations" ON registrations
     FOR ALL USING (auth.role() = 'service_role');
 
 -- =====================================================
+-- SESSION FEEDBACK TABLE
+-- Star ratings (1-5) and comments for sessions
+-- =====================================================
+CREATE TABLE IF NOT EXISTS session_feedback (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    attendee_id UUID NOT NULL REFERENCES attendees(id) ON DELETE CASCADE,
+    session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- One feedback per attendee per session
+    UNIQUE(attendee_id, session_id)
+);
+
+CREATE INDEX idx_feedback_session ON session_feedback(session_id);
+CREATE INDEX idx_feedback_attendee ON session_feedback(attendee_id);
+
+-- Enable RLS
+ALTER TABLE session_feedback ENABLE ROW LEVEL SECURITY;
+
+-- Service role can manage feedback
+CREATE POLICY "Service role can manage feedback" ON session_feedback
+    FOR ALL USING (auth.role() = 'service_role');
+
+-- =====================================================
 -- HELPFUL VIEWS
 -- =====================================================
 

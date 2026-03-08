@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Users, Calendar, BarChart3, Settings,
   Loader2, AlertCircle, ChevronRight,
-  Download, Plus, LogOut, Play, FileSpreadsheet, Mail
+  Download, Plus, LogOut, Play, FileSpreadsheet, Mail, Star
 } from 'lucide-react';
 
 interface Stats {
@@ -229,6 +229,17 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-3">
                 <Download className="w-5 h-5 text-nconnect-accent" />
                 <span className="text-white">Export registrácií (CSV)</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-nconnect-muted" />
+            </button>
+
+            <button
+              onClick={() => window.location.href = '/api/admin/export?type=feedback'}
+              className="w-full flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Star className="w-5 h-5 text-yellow-400" />
+                <span className="text-white">Export hodnotení (CSV)</span>
               </div>
               <ChevronRight className="w-5 h-5 text-nconnect-muted" />
             </button>

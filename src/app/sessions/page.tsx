@@ -3,22 +3,178 @@
 import { Suspense } from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { 
-  Clock, Users, CheckCircle2, AlertCircle, 
-  XCircle, Loader2, User, Building, Send
+import {
+  Clock, Users, CheckCircle2, AlertCircle,
+  XCircle, Loader2, User, Building, Send, Star, MessageSquare
 } from 'lucide-react';
-import { SessionWithAvailability, Stage, Attendee } from '@/types';
+import { SessionWithAvailability, Stage, Attendee, SessionFeedback } from '@/types';
 import { formatTime } from '@/lib/utils';
+
+// Feedback enabled from 26.3.2026 00:01 CET
+// Set to true for testing, change to date check for production
+const FEEDBACK_START = new Date('2026-03-26T00:01:00+01:00');
+const FEEDBACK_ALWAYS_ON = true; // Set to false for production
+const isFeedbackEnabled = () => FEEDBACK_ALWAYS_ON || new Date() >= FEEDBACK_START;
+
+// Star Rating Component
+function StarRating({ rating, onRate, size = 'md' }: { rating: number; onRate?: (r: number) => void; size?: 'sm' | 'md' }) {
+  const [hovered, setHovered] = useState(0);
+  const sizeClass = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+
+  return (
+    <div className="flex items-center gap-0.5" onMouseLeave={() => setHovered(0)}>
+      {[1, 2, 3, 4, 5].map(star => (
+        <button
+          key={star}
+          type="button"
+          onClick={() => onRate?.(star)}
+          onMouseEnter={() => onRate && setHovered(star)}
+          className={`transition-colors ${onRate ? 'cursor-pointer hover:scale-110' : 'cursor-default'}`}
+          disabled={!onRate}
+        >
+          <Star
+            className={`${sizeClass} transition-colors ${
+              star <= (hovered || rating)
+                ? 'text-yellow-400 fill-yellow-400'
+                : 'text-nconnect-muted/40'
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Feedback Form Component for a session
+function SessionFeedbackForm({
+  sessionId,
+  attendeeId,
+  existingFeedback,
+  onSaved
+}: {
+  sessionId: string;
+  attendeeId: string;
+  existingFeedback?: SessionFeedback;
+  onSaved: (feedback: SessionFeedback) => void;
+}) {
+  const [rating, setRating] = useState(existingFeedback?.rating || 0);
+  const [comment, setComment] = useState(existingFeedback?.comment || '');
+  const [isExpanded, setIsExpanded] = useState(!!existingFeedback);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleRate = async (newRating: number) => {
+    setRating(newRating);
+    setIsExpanded(true);
+
+    // Auto-save rating
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          attendee_id: attendeeId,
+          session_id: sessionId,
+          rating: newRating,
+          comment: comment || null,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        onSaved(data.data);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to save rating:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveComment = async () => {
+    if (rating === 0) return;
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          attendee_id: attendeeId,
+          session_id: sessionId,
+          rating,
+          comment: comment.trim() || null,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        onSaved(data.data);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to save comment:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 pt-3 border-t border-white/10">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs text-nconnect-muted flex items-center gap-1">
+          <Star className="w-3 h-3" /> Ohodnoť prednášku
+        </span>
+        {saved && (
+          <span className="text-xs text-green-400 flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3" /> Uložené
+          </span>
+        )}
+        {isSaving && (
+          <Loader2 className="w-3 h-3 text-nconnect-accent animate-spin" />
+        )}
+      </div>
+
+      <StarRating rating={rating} onRate={handleRate} />
+
+      {isExpanded && rating > 0 && (
+        <div className="mt-2">
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Pridaj komentár (nepovinné)..."
+            rows={2}
+            maxLength={500}
+            className="w-full bg-nconnect-primary/50 border border-nconnect-secondary/30 rounded-lg px-3 py-2 text-white text-sm placeholder-nconnect-muted/50 focus:border-nconnect-accent focus:ring-1 focus:ring-nconnect-accent transition-colors resize-none"
+          />
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-xs text-nconnect-muted">{comment.length}/500</span>
+            <button
+              onClick={handleSaveComment}
+              disabled={isSaving}
+              className="text-xs text-nconnect-accent hover:text-nconnect-accent/80 font-medium flex items-center gap-1"
+            >
+              <MessageSquare className="w-3 h-3" />
+              Uložiť komentár
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SessionsContent() {
   const searchParams = useSearchParams();
   const attendeeId = searchParams.get('attendee');
-  
+
   const [sessions, setSessions] = useState<SessionWithAvailability[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [attendee, setAttendee] = useState<Attendee | null>(null);
   const [registeredIds, setRegisteredIds] = useState<string[]>([]);
   const [originalRegisteredIds, setOriginalRegisteredIds] = useState<string[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Record<string, SessionFeedback>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -35,17 +191,8 @@ function SessionsContent() {
     if (!attendeeId) return;
 
     try {
-      console.log('[SESSIONS PAGE] Loading data for attendee:', attendeeId);
       const response = await fetch(`/api/sessions?attendee=${attendeeId}`);
       const data = await response.json();
-
-      console.log('[SESSIONS PAGE] API response:', {
-        success: data.success,
-        attendee: data.attendee?.email,
-        sessionsCount: data.sessions?.length,
-        registeredIds: data.registeredIds,
-        registeredCount: data.registeredIds?.length
-      });
 
       if (!response.ok) throw new Error(data.error);
 
@@ -54,6 +201,19 @@ function SessionsContent() {
       setAttendee(data.attendee);
       setRegisteredIds(data.registeredIds || []);
       setOriginalRegisteredIds(data.registeredIds || []);
+
+      // Load feedbacks
+      if (isFeedbackEnabled()) {
+        const fbResponse = await fetch(`/api/feedback?attendee=${attendeeId}`);
+        const fbData = await fbResponse.json();
+        if (fbData.success && fbData.data) {
+          const fbMap: Record<string, SessionFeedback> = {};
+          for (const fb of fbData.data) {
+            fbMap[fb.session_id] = fb;
+          }
+          setFeedbacks(fbMap);
+        }
+      }
     } catch (err) {
       console.error('[SESSIONS PAGE] Error:', err);
       setError(err instanceof Error ? err.message : 'Nepodarilo sa načítať dáta');
@@ -68,7 +228,7 @@ function SessionsContent() {
 
   const hasConflict = (session: SessionWithAvailability): boolean => {
     if (registeredIds.includes(session.id)) return false;
-    
+
     const registeredSessions = sessions.filter(s => registeredIds.includes(s.id));
     return registeredSessions.some(registered => {
       if (session.date !== registered.date) return false;
@@ -87,7 +247,7 @@ function SessionsContent() {
   const getDisplayedCount = (session: SessionWithAvailability): number => {
     const wasRegistered = originalRegisteredIds.includes(session.id);
     const isNowRegistered = registeredIds.includes(session.id);
-    
+
     if (wasRegistered && !isNowRegistered) {
       return Math.max(0, session.registered_count - 1);
     }
@@ -102,7 +262,7 @@ function SessionsContent() {
     if (!session) return;
 
     const isCurrentlyRegistered = registeredIds.includes(sessionId);
-    
+
     if (isCurrentlyRegistered) {
       setRegisteredIds(prev => prev.filter(id => id !== sessionId));
     } else {
@@ -111,43 +271,47 @@ function SessionsContent() {
         showToast('Prednáška je už plne obsadená', 'error');
         return;
       }
-      
+
       if (hasConflict(session)) {
         showToast('Časový konflikt s inou prednáškou', 'error');
         return;
       }
-      
+
       setRegisteredIds(prev => [...prev, sessionId]);
     }
   };
 
   const handleSaveChanges = async () => {
     setIsSaving(true);
-    
+
     try {
       const response = await fetch('/api/registrations/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          attendeeId, 
+        body: JSON.stringify({
+          attendeeId,
           sessionIds: registeredIds,
           previousSessionIds: originalRegisteredIds
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) throw new Error(data.error);
-      
+
       setOriginalRegisteredIds([...registeredIds]);
       await loadData();
-      
+
       showToast('Zmeny boli uložené a email bol odoslaný', 'success');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Uloženie zlyhalo', 'error');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleFeedbackSaved = (feedback: SessionFeedback) => {
+    setFeedbacks(prev => ({ ...prev, [feedback.session_id]: feedback }));
   };
 
   if (!attendeeId) {
@@ -197,11 +361,12 @@ function SessionsContent() {
     return acc;
   }, {} as Record<string, { date: string; start_time: string; end_time: string; sessions: SessionWithAvailability[] }>);
 
-  const timeSlots = Object.values(sessionsByTime).sort((a, b) => 
+  const timeSlots = Object.values(sessionsByTime).sort((a, b) =>
     a.start_time.localeCompare(b.start_time)
   );
 
   const registeredSessions = sessions.filter(s => registeredIds.includes(s.id));
+  const feedbackEnabled = isFeedbackEnabled();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -223,7 +388,7 @@ function SessionsContent() {
           Výber prednášok
         </h1>
         <p className="text-nconnect-muted">
-          Vyber si prednášky, ktoré chceš navštíviť. Po výbere klikni na "Potvrdiť zmeny".
+          Vyber si prednášky, ktoré chceš navštíviť. Po výbere klikni na &quot;Potvrdiť zmeny&quot;.
         </p>
       </div>
 
@@ -251,10 +416,8 @@ function SessionsContent() {
               <div className="grid md:grid-cols-2 gap-4">
                 {slot.sessions
                   .sort((a, b) => {
-                    // Sort by stage name: AI & Data Stage first (left), Soft Dev Stage second (right)
                     const stageA = stages.find(s => s.id === a.stage_id)?.name || '';
                     const stageB = stages.find(s => s.id === b.stage_id)?.name || '';
-                    // AI & Data should come before Soft Dev alphabetically
                     return stageA.localeCompare(stageB);
                   })
                   .map(session => {
@@ -263,13 +426,14 @@ function SessionsContent() {
                   const displayedCount = getDisplayedCount(session);
                   const isFull = displayedCount >= session.capacity;
                   const sessionHasConflict = hasConflict(session);
-                  
+
                   let cardClass = 'session-card card-hover';
                   if (isRegistered) cardClass += ' registered';
                   else if (isFull) cardClass += ' full';
                   else if (sessionHasConflict) cardClass += ' conflict';
 
                   const canRegister = !isFull && !sessionHasConflict;
+                  const showFeedback = feedbackEnabled && isRegistered && originalRegisteredIds.includes(session.id);
 
                   return (
                     <div key={session.id} className={cardClass}>
@@ -277,7 +441,7 @@ function SessionsContent() {
                         <span className="stage-badge" style={{ backgroundColor: `${stage?.color}20`, color: stage?.color }}>
                           {stage?.name}
                         </span>
-                        
+
                         {isRegistered && (
                           <span className="flex items-center gap-1 text-green-400 text-sm">
                             <CheckCircle2 className="w-4 h-4" />Prihlásený
@@ -296,7 +460,7 @@ function SessionsContent() {
                       </div>
 
                       <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2">{session.title}</h3>
-                      
+
                       <div className="flex items-center gap-2 text-nconnect-muted text-sm mb-3">
                         <User className="w-4 h-4" />
                         <span>{session.speaker_name}</span>
@@ -313,7 +477,7 @@ function SessionsContent() {
                           <span className="text-white">{displayedCount}/{session.capacity}</span>
                         </div>
                         <div className="capacity-bar">
-                          <div 
+                          <div
                             className={`capacity-fill ${displayedCount >= session.capacity ? 'full' : displayedCount >= session.capacity * 0.8 ? 'warning' : ''}`}
                             style={{ width: `${Math.min(100, (displayedCount / session.capacity) * 100)}%` }}
                           />
@@ -333,6 +497,15 @@ function SessionsContent() {
                       >
                         {isRegistered ? 'Odhlásiť sa' : canRegister ? 'Prihlásiť sa' : isFull ? 'Plná kapacita' : 'Časový konflikt'}
                       </button>
+
+                      {showFeedback && attendeeId && (
+                        <SessionFeedbackForm
+                          sessionId={session.id}
+                          attendeeId={attendeeId}
+                          existingFeedback={feedbacks[session.id]}
+                          onSaved={handleFeedbackSaved}
+                        />
+                      )}
                     </div>
                   );
                 })}
@@ -365,13 +538,14 @@ function SessionsContent() {
 
             <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl p-5">
               <h3 className="font-semibold text-white mb-3">Tvoje prednášky ({registeredSessions.length})</h3>
-              
+
               {registeredSessions.length === 0 ? (
                 <p className="text-nconnect-muted text-sm">Zatiaľ nemáš vybrané žiadne prednášky.</p>
               ) : (
                 <div className="space-y-3">
                   {registeredSessions.sort((a, b) => a.start_time.localeCompare(b.start_time)).map(session => {
                     const stage = stages.find(s => s.id === session.stage_id);
+                    const fb = feedbacks[session.id];
                     return (
                       <div key={session.id} className="bg-green-500/5 border border-green-500/20 rounded-lg p-3">
                         <div className="flex items-center gap-2 text-xs text-green-400 mb-1">
@@ -382,6 +556,11 @@ function SessionsContent() {
                         </div>
                         <p className="text-white text-sm font-medium line-clamp-2">{session.title}</p>
                         <p className="text-nconnect-muted text-xs mt-1">{session.speaker_name}</p>
+                        {fb && (
+                          <div className="mt-1">
+                            <StarRating rating={fb.rating} size="sm" />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -397,7 +576,7 @@ function SessionsContent() {
 
             <div className="bg-nconnect-accent/5 border border-nconnect-accent/20 rounded-xl p-5">
               <h4 className="font-medium text-nconnect-accent mb-2">💡 Tip</h4>
-              <p className="text-nconnect-muted text-sm">Po výbere prednášok klikni na "Potvrdiť zmeny". Až potom ti príde súhrnný email.</p>
+              <p className="text-nconnect-muted text-sm">Po výbere prednášok klikni na &quot;Potvrdiť zmeny&quot;. Až potom ti príde súhrnný email.</p>
             </div>
           </div>
         </div>

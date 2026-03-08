@@ -45,6 +45,15 @@ export interface Registration {
   session?: Session;
 }
 
+export interface SessionFeedback {
+  id: string;
+  attendee_id: string;
+  session_id: string;
+  rating: number; // 1-5
+  comment?: string;
+  created_at: string;
+}
+
 // Form types
 export interface RegistrationFormData {
   email: string;
