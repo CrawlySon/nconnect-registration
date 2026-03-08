@@ -13,7 +13,7 @@ import { formatTime } from '@/lib/utils';
 // Feedback enabled from 26.3.2026 00:01 CET
 // Set to true for testing, change to date check for production
 const FEEDBACK_START = new Date('2026-03-26T00:01:00+01:00');
-const FEEDBACK_ALWAYS_ON = true; // Set to false for production
+const FEEDBACK_ALWAYS_ON = false; // Set to true for testing
 const isFeedbackEnabled = () => FEEDBACK_ALWAYS_ON || new Date() >= FEEDBACK_START;
 
 // Star Rating Component
