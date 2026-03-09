@@ -11,12 +11,14 @@ export default function AdminLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Check if already authenticated
+  // Check if already authenticated via cookie
   useEffect(() => {
-    const isAuth = sessionStorage.getItem('admin_authenticated');
-    if (isAuth === 'true') {
-      router.push('/admin/dashboard');
-    }
+    fetch('/api/admin/auth')
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated) router.push('/admin/dashboard');
+      })
+      .catch(() => {});
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,8 +39,6 @@ export default function AdminLoginPage() {
         throw new Error(data.error || 'Nesprávne prihlasovacie údaje');
       }
 
-      // Store auth in session
-      sessionStorage.setItem('admin_authenticated', 'true');
       router.push('/admin/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Prihlásenie zlyhalo');

@@ -19,14 +19,8 @@ export default function AdminSessionsPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if authenticated
-    const isAuth = sessionStorage.getItem('admin_authenticated');
-    if (isAuth !== 'true') {
-      router.push('/admin');
-      return;
-    }
     loadData();
-  }, [router]);
+  }, []);
 
   const loadData = async () => {
     try {

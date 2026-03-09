@@ -24,13 +24,8 @@ export default function AdminEmailTestPage() {
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
-    const isAuth = sessionStorage.getItem('admin_authenticated');
-    if (isAuth !== 'true') {
-      router.push('/admin');
-      return;
-    }
     checkStatus();
-  }, [router]);
+  }, []);
 
   const checkStatus = async () => {
     try {

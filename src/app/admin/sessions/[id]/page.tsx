@@ -49,13 +49,8 @@ export default function SessionDetailPage() {
   });
 
   useEffect(() => {
-    const isAuth = sessionStorage.getItem('admin_authenticated');
-    if (isAuth !== 'true') {
-      router.push('/admin');
-      return;
-    }
     loadData();
-  }, [router, sessionId]);
+  }, [sessionId]);
 
   const showToast = (message: string, type: 'success' | 'error') => {
     setToast({ message, type });

@@ -26,14 +26,8 @@ export default function NewSessionPage() {
   });
 
   useEffect(() => {
-    // Check if authenticated
-    const isAuth = sessionStorage.getItem('admin_authenticated');
-    if (isAuth !== 'true') {
-      router.push('/admin');
-      return;
-    }
     loadStages();
-  }, [router]);
+  }, []);
 
   const loadStages = async () => {
     try {

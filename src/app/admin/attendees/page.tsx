@@ -60,14 +60,6 @@ export default function AdminAttendeesPage() {
   const [selectedAttendee, setSelectedAttendee] = useState<AttendeeDetail | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
-  useEffect(() => {
-    const isAuth = sessionStorage.getItem('admin_authenticated');
-    if (isAuth !== 'true') {
-      router.push('/admin');
-      return;
-    }
-  }, [router]);
-
   const loadAttendees = useCallback(async () => {
     setIsLoading(true);
     try {

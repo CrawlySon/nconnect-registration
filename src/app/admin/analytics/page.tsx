@@ -46,14 +46,6 @@ export default function AdminAnalyticsPage() {
   const [selectedStage, setSelectedStage] = useState<string>('');
   const [selectedSession, setSelectedSession] = useState<string>('');
 
-  useEffect(() => {
-    const isAuth = sessionStorage.getItem('admin_authenticated');
-    if (isAuth !== 'true') {
-      router.push('/admin');
-      return;
-    }
-  }, [router]);
-
   const loadAnalytics = useCallback(async () => {
     setIsLoading(true);
     try {

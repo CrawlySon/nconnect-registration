@@ -34,13 +34,8 @@ export default function BulkEditSessionsPage() {
   };
 
   useEffect(() => {
-    const isAuth = sessionStorage.getItem('admin_authenticated');
-    if (isAuth !== 'true') {
-      router.push('/admin');
-      return;
-    }
     loadData();
-  }, [router]);
+  }, []);
 
   const loadData = async () => {
     try {

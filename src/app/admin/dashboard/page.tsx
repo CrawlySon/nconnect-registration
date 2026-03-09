@@ -31,22 +31,17 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    // Check if authenticated
-    const isAuth = sessionStorage.getItem('admin_authenticated');
-    if (isAuth !== 'true') {
-      router.push('/admin');
-      return;
-    }
     loadData();
-  }, [router]);
+  }, []);
 
   const loadData = async () => {
     try {
       const response = await fetch('/api/admin/stats');
+      if (response.status === 401) { router.push('/admin'); return; }
       const data = await response.json();
-      
+
       if (!response.ok) throw new Error(data.error);
-      
+
       setStats(data.stats);
       setRecentAttendees(data.recentAttendees);
     } catch (err) {
@@ -56,8 +51,8 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    sessionStorage.removeItem('admin_authenticated');
+  const handleLogout = async () => {
+    await fetch('/api/admin/auth', { method: 'DELETE' });
     router.push('/admin');
   };
 
