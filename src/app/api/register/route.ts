@@ -16,6 +16,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Server-side email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Neplatný formát emailovej adresy' },
+        { status: 400 }
+      );
+    }
+
     if (password.length < 6) {
       return NextResponse.json(
         { error: 'Heslo musí mať aspoň 6 znakov' },

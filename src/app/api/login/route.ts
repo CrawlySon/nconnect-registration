@@ -15,6 +15,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Neplatný formát emailovej adresy' },
+        { status: 400 }
+      );
+    }
+
     const supabase = createServerClient();
 
     const { data: attendee, error } = await supabase
