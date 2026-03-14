@@ -30,17 +30,17 @@ export async function GET(
       .select('*')
       .order('name');
 
-    // Get registrations with attendee info
+    // Get registrations with attendee info (exclude password_hash)
     const { data: registrations } = await supabase
       .from('registrations')
-      .select('*, attendee:attendees(*)')
+      .select('*, attendee:attendees(id, name, email, company)')
       .eq('session_id', sessionId)
       .order('registered_at', { ascending: false });
 
-    // Get all attendees for add modal
+    // Get all attendees for add modal (exclude password_hash)
     const { data: allAttendees } = await supabase
       .from('attendees')
-      .select('*')
+      .select('id, name, email, company')
       .order('name');
 
     return NextResponse.json({

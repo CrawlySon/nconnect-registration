@@ -23,6 +23,15 @@ function getTransporter(): nodemailer.Transporter | null {
 const FROM_EMAIL = process.env.SMTP_USER || 'registracia@nconnect.sk';
 const FROM_NAME = 'nConnect26';
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Generate Google Calendar URL for a session
 function getGoogleCalendarUrl(session: Session): string {
   // Convert date "2026-03-26" and time "09:00" or "09:00:00" to Google Calendar format "20260326T090000"
@@ -72,13 +81,13 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
       subject = `Prihlásenie na prednášku: ${changedSession?.title}`;
       heading = 'Prihlásenie potvrdené';
       emoji = '✅';
-      message = `Úspešne si sa prihlásil/a na prednášku "<strong>${changedSession?.title}</strong>".`;
+      message = `Úspešne si sa prihlásil/a na prednášku "<strong>${escapeHtml(changedSession?.title || '')}</strong>".`;
       break;
     case 'session_removed':
       subject = `Odhlásenie z prednášky: ${changedSession?.title}`;
       heading = 'Odhlásenie z prednášky';
       emoji = '📝';
-      message = `Bol/a si odhlásený/á z prednášky "<strong>${changedSession?.title}</strong>".`;
+      message = `Bol/a si odhlásený/á z prednášky "<strong>${escapeHtml(changedSession?.title || '')}</strong>".`;
       break;
     case 'update':
       subject = 'Prehľad tvojich prednášok na nConnect26';
@@ -103,15 +112,15 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
         <div style="background: #f8fafc; border-left: 4px solid ${session.stage?.color || '#00D4FF'}; padding: 16px; margin-bottom: 12px; border-radius: 0 8px 8px 0;">
           <div style="display: flex; align-items: center; margin-bottom: 8px;">
             <span style="background: ${session.stage?.color || '#00D4FF'}22; color: ${session.stage?.color || '#00D4FF'}; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;">
-              ${session.stage?.name || 'Stage'}
+              ${escapeHtml(session.stage?.name || 'Stage')}
             </span>
             <span style="color: #64748B; font-size: 14px; margin-left: 12px;">
               🕐 ${formatTime(session.start_time)} - ${formatTime(session.end_time)}
             </span>
           </div>
-          <h4 style="margin: 0 0 4px 0; color: #0A1628; font-size: 16px;">${session.title}</h4>
+          <h4 style="margin: 0 0 4px 0; color: #0A1628; font-size: 16px;">${escapeHtml(session.title)}</h4>
           <p style="margin: 0 0 8px 0; color: #64748B; font-size: 14px;">
-            👤 ${session.speaker_name}${session.speaker_company ? ` • ${session.speaker_company}` : ''}
+            👤 ${escapeHtml(session.speaker_name)}${session.speaker_company ? ` • ${escapeHtml(session.speaker_company)}` : ''}
           </p>
           <a href="${gcalUrl}" target="_blank" style="color: #1a73e8; font-size: 13px; text-decoration: none;">
             📅 Pridať do Google kalendára
@@ -162,7 +171,7 @@ export async function sendEmail({ to, attendeeName, type, sessions, changedSessi
               <h2 style="color: #0A1628; margin: 16px 0 0 0; font-size: 24px;">${heading}</h2>
             </div>
 
-            <p style="font-size: 16px;">Ahoj <strong>${attendeeName}</strong>,</p>
+            <p style="font-size: 16px;">Ahoj <strong>${escapeHtml(attendeeName)}</strong>,</p>
             <p style="font-size: 16px;">${message}</p>
 
             ${sessionsHtml}

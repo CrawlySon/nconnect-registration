@@ -14,7 +14,7 @@ export async function GET(
     // Get attendee
     const { data: attendee, error: attendeeError } = await supabase
       .from('attendees')
-      .select('*')
+      .select('id, name, email, company, created_at, updated_at')
       .eq('id', attendeeId)
       .single();
 

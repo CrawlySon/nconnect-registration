@@ -33,15 +33,15 @@ export async function POST(request: NextRequest) {
 
     if (error || !attendee) {
       return NextResponse.json(
-        { error: 'Účet s týmto emailom neexistuje. Zaregistruj sa najprv.' },
-        { status: 404 }
+        { error: 'Nesprávny email alebo heslo.' },
+        { status: 401 }
       );
     }
 
     const isValid = await verifyPassword(password, attendee.password_hash);
     if (!isValid) {
       return NextResponse.json(
-        { error: 'Nesprávne heslo.' },
+        { error: 'Nesprávny email alebo heslo.' },
         { status: 401 }
       );
     }

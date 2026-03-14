@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = supabase
       .from('attendees')
-      .select('*', { count: 'exact' });
+      .select('id, name, email, company, created_at, updated_at', { count: 'exact' });
 
     // Add search filter
     if (search) {
