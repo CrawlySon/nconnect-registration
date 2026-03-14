@@ -18,10 +18,10 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServerClient();
 
-    // Verify attendee exists
+    // Verify attendee exists (never select password_hash)
     const { data: attendee, error: attendeeError } = await supabase
       .from('attendees')
-      .select('*')
+      .select('id, name, email, company, created_at')
       .eq('id', attendeeId)
       .single();
 
@@ -70,11 +70,6 @@ export async function GET(request: NextRequest) {
       .select('session_id')
       .eq('attendee_id', attendeeId);
 
-    console.log('[SESSIONS API] Attendee ID:', attendeeId);
-    console.log('[SESSIONS API] Attendee email:', attendee.email);
-    console.log('[SESSIONS API] Registrations found:', registrations?.length || 0);
-    console.log('[SESSIONS API] Registration data:', JSON.stringify(registrations));
-
     if (regError) {
       console.error('[SESSIONS API] Registrations fetch error:', regError);
       return NextResponse.json(
@@ -84,7 +79,6 @@ export async function GET(request: NextRequest) {
     }
 
     const registeredIds = registrations?.map(r => r.session_id) || [];
-    console.log('[SESSIONS API] Registered IDs:', registeredIds);
     
     // Enrich sessions with availability info
     const enrichedSessions = enrichSessionsWithAvailability(sessions || [], registeredIds);

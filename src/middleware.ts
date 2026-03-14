@@ -43,9 +43,9 @@ function cleanupRateLimitMap() {
 
 // --- JWT verification ---
 function getSecret() {
-  const secret = process.env.ADMIN_PASSWORD;
+  const secret = process.env.JWT_SECRET || process.env.ADMIN_PASSWORD;
   if (!secret) return null;
-  return new TextEncoder().encode('nconnect-admin-jwt-' + secret);
+  return new TextEncoder().encode(secret);
 }
 
 async function isValidToken(token: string): Promise<boolean> {

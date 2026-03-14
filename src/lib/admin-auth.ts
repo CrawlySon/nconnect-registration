@@ -6,11 +6,9 @@ const COOKIE_NAME = 'admin_token';
 const TOKEN_EXPIRY = '8h';
 
 function getSecret() {
-  // Use ADMIN_PASSWORD + a salt as the signing secret
-  // This way no extra env var is needed
-  const secret = process.env.ADMIN_PASSWORD;
-  if (!secret) throw new Error('ADMIN_PASSWORD not configured');
-  return new TextEncoder().encode('nconnect-admin-jwt-' + secret);
+  const secret = process.env.JWT_SECRET || process.env.ADMIN_PASSWORD;
+  if (!secret) throw new Error('JWT_SECRET or ADMIN_PASSWORD not configured');
+  return new TextEncoder().encode(secret);
 }
 
 export async function createAdminToken(): Promise<string> {
