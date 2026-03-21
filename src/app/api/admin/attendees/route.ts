@@ -11,6 +11,12 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const search = searchParams.get('search') || '';
+    const sort = searchParams.get('sort') || 'created_at';
+    const sortDir = searchParams.get('sortDir') || 'desc';
+
+    // Whitelist sortable columns
+    const allowedSorts = ['name', 'email', 'company', 'created_at'];
+    const sortColumn = allowedSorts.includes(sort) ? sort : 'created_at';
 
     const offset = (page - 1) * limit;
 
@@ -26,7 +32,7 @@ export async function GET(request: NextRequest) {
 
     // Get paginated results
     const { data: attendees, count, error } = await query
-      .order('created_at', { ascending: false })
+      .order(sortColumn, { ascending: sortDir === 'asc' })
       .range(offset, offset + limit - 1);
 
     if (error) throw error;

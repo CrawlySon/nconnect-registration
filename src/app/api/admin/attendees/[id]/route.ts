@@ -3,6 +3,44 @@ import { createServerClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = createServerClient();
+    const attendeeId = params.id;
+
+    // Delete registrations first (cascade)
+    await supabase
+      .from('registrations')
+      .delete()
+      .eq('attendee_id', attendeeId);
+
+    // Delete feedback
+    await supabase
+      .from('feedback')
+      .delete()
+      .eq('attendee_id', attendeeId);
+
+    // Delete attendee
+    const { error } = await supabase
+      .from('attendees')
+      .delete()
+      .eq('id', attendeeId);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Admin delete attendee error:', error);
+    return NextResponse.json(
+      { error: 'Nepodarilo sa odstrániť účastníka' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

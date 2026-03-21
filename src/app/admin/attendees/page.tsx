@@ -6,7 +6,8 @@ import Link from 'next/link';
 import {
   ArrowLeft, Loader2, Users, Search,
   ChevronLeft, ChevronRight, X, Clock,
-  Building, Mail, Calendar, Eye
+  Building, Mail, Calendar, Eye, Trash2,
+  ArrowUp, ArrowDown, ArrowUpDown
 } from 'lucide-react';
 import { Attendee } from '@/types';
 import { formatTime } from '@/lib/utils';
@@ -59,6 +60,10 @@ export default function AdminAttendeesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedAttendee, setSelectedAttendee] = useState<AttendeeDetail | null>(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [sortBy, setSortBy] = useState<string>('created_at');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [deleteConfirm, setDeleteConfirm] = useState<AttendeeWithCount | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadAttendees = useCallback(async () => {
     setIsLoading(true);
@@ -66,6 +71,8 @@ export default function AdminAttendeesPage() {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
+        sort: sortBy,
+        sortDir: sortDir,
       });
       if (search) params.append('search', search);
 
@@ -81,7 +88,7 @@ export default function AdminAttendeesPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [pagination.page, pagination.limit, search]);
+  }, [pagination.page, pagination.limit, search, sortBy, sortDir]);
 
   useEffect(() => {
     loadAttendees();
@@ -114,6 +121,43 @@ export default function AdminAttendeesPage() {
       console.error('Failed to load attendee detail:', err);
     } finally {
       setIsLoadingDetail(false);
+    }
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+    setPagination(prev => ({ ...prev, page: 1 }));
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortBy !== column) return <ArrowUpDown className="w-3 h-3 opacity-40" />;
+    return sortDir === 'asc'
+      ? <ArrowUp className="w-3 h-3 text-nconnect-accent" />
+      : <ArrowDown className="w-3 h-3 text-nconnect-accent" />;
+  };
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return;
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/admin/attendees/${deleteConfirm.id}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error);
+      }
+      setDeleteConfirm(null);
+      loadAttendees();
+    } catch (err) {
+      console.error('Failed to delete attendee:', err);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -195,10 +239,18 @@ export default function AdminAttendeesPage() {
               <table className="w-full">
                 <thead>
                   <tr>
-                    <th>Meno</th>
-                    <th>Email</th>
-                    <th>Firma</th>
-                    <th>Registrácia</th>
+                    <th className="cursor-pointer select-none" onClick={() => handleSort('name')}>
+                      <span className="inline-flex items-center gap-1">Meno <SortIcon column="name" /></span>
+                    </th>
+                    <th className="cursor-pointer select-none" onClick={() => handleSort('email')}>
+                      <span className="inline-flex items-center gap-1">Email <SortIcon column="email" /></span>
+                    </th>
+                    <th className="cursor-pointer select-none" onClick={() => handleSort('company')}>
+                      <span className="inline-flex items-center gap-1">Firma <SortIcon column="company" /></span>
+                    </th>
+                    <th className="cursor-pointer select-none" onClick={() => handleSort('created_at')}>
+                      <span className="inline-flex items-center gap-1">Registrácia <SortIcon column="created_at" /></span>
+                    </th>
                     <th>Prednášky</th>
                     <th></th>
                   </tr>
@@ -222,13 +274,22 @@ export default function AdminAttendeesPage() {
                         </span>
                       </td>
                       <td>
-                        <button
-                          onClick={() => loadAttendeeDetail(attendee.id)}
-                          className="p-2 hover:bg-white/5 rounded-lg transition-colors"
-                          title="Zobraziť detail"
-                        >
-                          <Eye className="w-4 h-4 text-nconnect-accent" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => loadAttendeeDetail(attendee.id)}
+                            className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+                            title="Zobraziť detail"
+                          >
+                            <Eye className="w-4 h-4 text-nconnect-accent" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(attendee)}
+                            className="p-2 hover:bg-red-500/10 rounded-lg transition-colors"
+                            title="Odstrániť účastníka"
+                          >
+                            <Trash2 className="w-4 h-4 text-red-400" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -264,6 +325,43 @@ export default function AdminAttendeesPage() {
               </div>
             )}
           </>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="glass-card max-w-md w-full">
+              <h2 className="text-xl font-bold text-white mb-4">Odstrániť účastníka?</h2>
+              <p className="text-nconnect-muted mb-2">
+                Naozaj chceš odstrániť <strong className="text-white">{deleteConfirm.name}</strong> ({deleteConfirm.email})?
+              </p>
+              <p className="text-red-400 text-sm mb-6">
+                Tým sa vymažú aj všetky jeho registrácie na prednášky ({deleteConfirm.registration_count}).
+                Táto akcia sa nedá vrátiť.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirm(null)}
+                  className="glass-button flex-1"
+                  disabled={isDeleting}
+                >
+                  Zrušiť
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="flex-1 px-4 py-2 bg-red-500/20 border border-red-500/30 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  Odstrániť
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Detail Modal */}
