@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, MapPin, Users, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Calendar, MapPin, Users, ArrowRight, Loader2, Eye, EyeOff, Lock } from 'lucide-react';
+
+// Registration deadline: 25.3.2026 (closed from this date)
+const REGISTRATION_DEADLINE = new Date('2026-03-25T00:00:00+01:00');
 
 export default function HomePage() {
   const router = useRouter();
@@ -13,6 +16,7 @@ export default function HomePage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const isRegistrationClosed = new Date() >= REGISTRATION_DEADLINE;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,10 +61,17 @@ export default function HomePage() {
             {/* Left column - Info */}
             <div className="space-y-8">
               <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 bg-nconnect-accent/10 border border-nconnect-accent/30 rounded-full px-4 py-2 text-nconnect-accent text-sm font-medium">
-                  <span className="w-2 h-2 bg-nconnect-accent rounded-full animate-pulse" />
-                  Registrácia otvorená
-                </div>
+                {isRegistrationClosed ? (
+                  <div className="inline-flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-full px-4 py-2 text-red-400 text-sm font-medium">
+                    <Lock className="w-3 h-3" />
+                    Registrácia uzatvorená
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 bg-nconnect-accent/10 border border-nconnect-accent/30 rounded-full px-4 py-2 text-nconnect-accent text-sm font-medium">
+                    <span className="w-2 h-2 bg-nconnect-accent rounded-full animate-pulse" />
+                    Registrácia otvorená
+                  </div>
+                )}
                 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-display font-bold text-white leading-tight">
                   IT konferencia
@@ -126,7 +137,36 @@ export default function HomePage() {
             {/* Right column - Registration form */}
             <div className="lg:pl-8">
               <div className="bg-nconnect-surface/80 backdrop-blur border border-nconnect-secondary/30 rounded-2xl p-8 shadow-2xl">
-                    <>
+                {isRegistrationClosed ? (
+                  <>
+                    <div className="text-center space-y-4">
+                      <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto">
+                        <Lock className="w-8 h-8 text-red-400" />
+                      </div>
+                      <h2 className="text-2xl font-display font-bold text-white">
+                        Registrácia uzatvorená
+                      </h2>
+                      <p className="text-nconnect-muted">
+                        Registrácia na nConnect26 bola uzatvorená. Uvidíme sa na konferencii!
+                      </p>
+                    </div>
+
+                    <div className="mt-6 bg-nconnect-accent/10 border border-nconnect-accent/30 rounded-lg p-4">
+                      <p className="text-nconnect-accent text-sm text-center">
+                        Už si registrovaný? Stále sa môžeš prihlásiť a upraviť výber prednášok.
+                      </p>
+                    </div>
+
+                    <a
+                      href="/login"
+                      className="btn-primary w-full flex items-center justify-center gap-2 mt-4"
+                    >
+                      Prihlásiť sa
+                      <ArrowRight className="w-5 h-5" />
+                    </a>
+                  </>
+                ) : (
+                  <>
                     <div className="mb-6">
                       <h2 className="text-2xl font-display font-bold text-white mb-2">
                         Zaregistruj sa
@@ -240,6 +280,7 @@ export default function HomePage() {
                       </a>
                     </p>
                   </>
+                )}
               </div>
             </div>
           </div>

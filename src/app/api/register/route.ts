@@ -7,6 +7,15 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
+    // Registration deadline: 25.3.2026 (closed from this date)
+    const REGISTRATION_DEADLINE = new Date('2026-03-25T00:00:00+01:00');
+    if (new Date() >= REGISTRATION_DEADLINE) {
+      return NextResponse.json(
+        { error: 'Registrácia je uzatvorená. Uvidíme sa na konferencii!' },
+        { status: 403 }
+      );
+    }
+
     const { email, name, company, password } = await request.json();
 
     if (!email || !name || !password) {
