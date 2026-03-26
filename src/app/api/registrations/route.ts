@@ -6,9 +6,19 @@ import { Session } from '@/types';
 
 export const dynamic = 'force-dynamic';
 
+// Registration locked from conference day
+const REGISTRATION_LOCK = new Date('2026-03-26T00:00:00+01:00');
+
 // Register for a session
 export async function POST(request: NextRequest) {
   try {
+    if (new Date() >= REGISTRATION_LOCK) {
+      return NextResponse.json(
+        { error: 'Registrácia na prednášky je uzavretá.' },
+        { status: 403 }
+      );
+    }
+
     const { attendeeId, sessionId } = await request.json();
 
     if (!attendeeId || !sessionId) {
@@ -151,6 +161,13 @@ export async function POST(request: NextRequest) {
 // Unregister from a session
 export async function DELETE(request: NextRequest) {
   try {
+    if (new Date() >= REGISTRATION_LOCK) {
+      return NextResponse.json(
+        { error: 'Zmeny registrácií sú uzavreté.' },
+        { status: 403 }
+      );
+    }
+
     const { attendeeId, sessionId } = await request.json();
 
     if (!attendeeId || !sessionId) {

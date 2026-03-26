@@ -11,10 +11,13 @@ import { SessionWithAvailability, Stage, Attendee, SessionFeedback } from '@/typ
 import { formatTime } from '@/lib/utils';
 
 // Feedback enabled from 26.3.2026 00:01 CET
-// Set to true for testing, change to date check for production
 const FEEDBACK_START = new Date('2026-03-26T00:01:00+01:00');
 const FEEDBACK_ALWAYS_ON = false; // Set to true for testing
 const isFeedbackEnabled = () => FEEDBACK_ALWAYS_ON || new Date() >= FEEDBACK_START;
+
+// Registration locked from conference day (26.3.2026)
+const REGISTRATION_LOCK = new Date('2026-03-26T00:00:00+01:00');
+const isRegistrationLocked = () => new Date() >= REGISTRATION_LOCK;
 
 // Star Rating Component
 function StarRating({ rating, onRate, size = 'md' }: { rating: number; onRate?: (r: number) => void; size?: 'sm' | 'md' }) {
@@ -367,6 +370,7 @@ function SessionsContent() {
 
   const registeredSessions = sessions.filter(s => registeredIds.includes(s.id));
   const feedbackEnabled = isFeedbackEnabled();
+  const registrationLocked = isRegistrationLocked();
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -484,19 +488,29 @@ function SessionsContent() {
                         </div>
                       </div>
 
-                      <button
-                        onClick={() => handleToggleRegistration(session.id)}
-                        disabled={!isRegistered && !canRegister}
-                        className={`w-full py-2 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+                      {registrationLocked ? (
+                        <div className={`w-full py-2 px-4 rounded-lg font-medium text-center ${
                           isRegistered
-                            ? 'bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30'
-                            : canRegister
-                              ? 'bg-nconnect-accent/10 text-nconnect-accent border border-nconnect-accent/30 hover:bg-nconnect-accent/20'
-                              : 'bg-nconnect-secondary/20 text-nconnect-muted cursor-not-allowed'
-                        }`}
-                      >
-                        {isRegistered ? 'Odhlásiť sa' : canRegister ? 'Prihlásiť sa' : isFull ? 'Plná kapacita' : 'Časový konflikt'}
-                      </button>
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                            : 'bg-nconnect-secondary/20 text-nconnect-muted'
+                        }`}>
+                          {isRegistered ? '✅ Prihlásený/á' : 'Registrácia uzavretá'}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleToggleRegistration(session.id)}
+                          disabled={!isRegistered && !canRegister}
+                          className={`w-full py-2 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
+                            isRegistered
+                              ? 'bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30'
+                              : canRegister
+                                ? 'bg-nconnect-accent/10 text-nconnect-accent border border-nconnect-accent/30 hover:bg-nconnect-accent/20'
+                                : 'bg-nconnect-secondary/20 text-nconnect-muted cursor-not-allowed'
+                          }`}
+                        >
+                          {isRegistered ? 'Odhlásiť sa' : canRegister ? 'Prihlásiť sa' : isFull ? 'Plná kapacita' : 'Časový konflikt'}
+                        </button>
+                      )}
 
                       {showFeedback && attendeeId && (
                         <SessionFeedbackForm
