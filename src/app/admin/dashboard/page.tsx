@@ -14,6 +14,9 @@ interface Stats {
   totalSessions: number;
   totalRegistrations: number;
   averageSessionFill: number;
+  totalFeedback: number;
+  averageRating: number;
+  withComments: number;
 }
 
 interface RecentAttendee {
@@ -23,10 +26,28 @@ interface RecentAttendee {
   created_at: string;
 }
 
+interface SessionFeedbackStat {
+  sessionId: string;
+  title: string;
+  speaker: string;
+  avgRating: number;
+  count: number;
+  comments: number;
+}
+
+interface RecentFeedback {
+  rating: number;
+  comment: string | null;
+  attendeeName: string;
+  sessionTitle: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentAttendees, setRecentAttendees] = useState<RecentAttendee[]>([]);
+  const [sessionFeedback, setSessionFeedback] = useState<SessionFeedbackStat[]>([]);
+  const [recentFeedback, setRecentFeedback] = useState<RecentFeedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -44,6 +65,8 @@ export default function AdminDashboard() {
 
       setStats(data.stats);
       setRecentAttendees(data.recentAttendees);
+      setSessionFeedback(data.sessionFeedbackStats || []);
+      setRecentFeedback(data.recentFeedback || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nepodarilo sa načítať dáta');
     } finally {
@@ -143,6 +166,104 @@ export default function AdminDashboard() {
           <p className="text-nconnect-muted text-sm">Priemerná obsadenosť</p>
         </div>
       </div>
+
+      {/* Feedback stats */}
+      {(stats?.totalFeedback ?? 0) > 0 && (
+        <div className="grid sm:grid-cols-3 gap-6 mb-8">
+          <div className="bg-nconnect-surface border border-yellow-500/30 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                <Star className="w-6 h-6 text-yellow-400" />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white">{stats?.totalFeedback || 0}</p>
+            <p className="text-nconnect-muted text-sm">Celkom hodnotení</p>
+          </div>
+
+          <div className="bg-nconnect-surface border border-yellow-500/30 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                <span className="text-yellow-400 text-xl">★</span>
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white">{stats?.averageRating?.toFixed(1) || '0'}</p>
+            <p className="text-nconnect-muted text-sm">Priemerné hodnotenie</p>
+          </div>
+
+          <div className="bg-nconnect-surface border border-yellow-500/30 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+                <span className="text-yellow-400 text-lg">💬</span>
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white">{stats?.withComments || 0}</p>
+            <p className="text-nconnect-muted text-sm">S komentárom</p>
+          </div>
+        </div>
+      )}
+
+      {/* Session feedback rankings */}
+      {sessionFeedback.length > 0 && (
+        <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl p-6 mb-8">
+          <h2 className="text-xl font-semibold text-white mb-4">Hodnotenie prednášok</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-nconnect-muted border-b border-nconnect-secondary/30">
+                  <th className="text-left py-3 px-4">Prednáška</th>
+                  <th className="text-left py-3 px-4">Speaker</th>
+                  <th className="text-center py-3 px-4">Priemer</th>
+                  <th className="text-center py-3 px-4">Počet</th>
+                  <th className="text-center py-3 px-4">Komentáre</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sessionFeedback.map((sf) => (
+                  <tr key={sf.sessionId} className="border-b border-nconnect-secondary/20 hover:bg-nconnect-primary/30">
+                    <td className="py-3 px-4 text-white font-medium">{sf.title}</td>
+                    <td className="py-3 px-4 text-nconnect-muted">{sf.speaker}</td>
+                    <td className="py-3 px-4 text-center">
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm font-semibold ${
+                        sf.avgRating >= 4.5 ? 'bg-green-500/20 text-green-400' :
+                        sf.avgRating >= 3.5 ? 'bg-yellow-500/20 text-yellow-400' :
+                        sf.avgRating >= 2.5 ? 'bg-orange-500/20 text-orange-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>
+                        ★ {sf.avgRating.toFixed(1)}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-center text-nconnect-muted">{sf.count}</td>
+                    <td className="py-3 px-4 text-center text-nconnect-muted">{sf.comments}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Recent feedback */}
+      {recentFeedback.length > 0 && (
+        <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl p-6 mb-8">
+          <h2 className="text-xl font-semibold text-white mb-4">Posledné hodnotenia</h2>
+          <div className="space-y-3">
+            {recentFeedback.map((fb, i) => (
+              <div key={i} className="p-4 bg-nconnect-primary/50 rounded-lg">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-white font-medium">{fb.sessionTitle}</span>
+                  <span className="text-yellow-400 font-semibold">
+                    {'★'.repeat(fb.rating)}{'☆'.repeat(5 - fb.rating)}
+                  </span>
+                </div>
+                <p className="text-nconnect-muted text-sm">{fb.attendeeName}</p>
+                {fb.comment && (
+                  <p className="text-nconnect-light text-sm mt-2 italic">&quot;{fb.comment}&quot;</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick actions and recent activity */}
       <div className="grid lg:grid-cols-2 gap-8">
