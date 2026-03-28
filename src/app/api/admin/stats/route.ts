@@ -43,7 +43,7 @@ export async function GET() {
 
     // Get feedback stats
     const { data: feedbackData } = await supabase
-      .from('feedback')
+      .from('session_feedback')
       .select('rating, session_id, comment, attendee:attendees(name, email), session:sessions(title, speaker_name)')
       .order('created_at', { ascending: false });
 

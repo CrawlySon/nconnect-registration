@@ -19,7 +19,7 @@ export async function DELETE(
 
     // Delete feedback
     await supabase
-      .from('feedback')
+      .from('session_feedback')
       .delete()
       .eq('attendee_id', attendeeId);
 
