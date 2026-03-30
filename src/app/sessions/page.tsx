@@ -5,10 +5,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Clock, Users, CheckCircle2, AlertCircle,
-  XCircle, Loader2, User, Building, Send, Star, MessageSquare
+  XCircle, Loader2, User, Building, Send, Star, MessageSquare, ClipboardList
 } from 'lucide-react';
-import { SessionWithAvailability, Stage, Attendee, SessionFeedback } from '@/types';
+import { SessionWithAvailability, Stage, Attendee, SessionFeedback, SurveyResponse, SurveyAnswers, SurveyQuestion } from '@/types';
 import { formatTime } from '@/lib/utils';
+import { SURVEY_QUESTIONS } from '@/lib/survey-config';
 
 // Feedback enabled from 26.3.2026 00:01 CET
 const FEEDBACK_START = new Date('2026-03-26T00:01:00+01:00');
@@ -168,6 +169,203 @@ function SessionFeedbackForm({
   );
 }
 
+// NPS Scale Component
+function NPSScale({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div>
+      <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
+        {Array.from({ length: 10 }, (_, i) => i + 1).map(n => (
+          <button
+            key={n}
+            type="button"
+            onClick={() => onChange(n)}
+            className={`py-2 px-1 rounded-lg text-sm font-medium transition-all border ${
+              value === n
+                ? n <= 6 ? 'bg-red-500/30 border-red-500 text-red-300'
+                  : n <= 8 ? 'bg-yellow-500/30 border-yellow-500 text-yellow-300'
+                  : 'bg-green-500/30 border-green-500 text-green-300'
+                : 'bg-nconnect-primary/50 border-nconnect-secondary/30 text-nconnect-muted hover:border-nconnect-accent/50'
+            }`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <div className="flex justify-between mt-1">
+        <span className="text-xs text-nconnect-muted">Určite nie</span>
+        <span className="text-xs text-nconnect-muted">Určite áno</span>
+      </div>
+    </div>
+  );
+}
+
+// Choice Chips Component
+function ChoiceChips({ options, selected, multi, onChange }: {
+  options: { value: string; label: string }[];
+  selected: string | string[];
+  multi: boolean;
+  onChange: (val: string | string[]) => void;
+}) {
+  const selectedArr = Array.isArray(selected) ? selected : (selected ? [selected] : []);
+  return (
+    <div className="flex flex-wrap gap-2">
+      {options.map(opt => {
+        const isSelected = selectedArr.includes(opt.value);
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => {
+              if (multi) {
+                const next = isSelected ? selectedArr.filter(v => v !== opt.value) : [...selectedArr, opt.value];
+                onChange(next);
+              } else {
+                onChange(opt.value);
+              }
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border ${
+              isSelected
+                ? 'bg-nconnect-accent/10 border-nconnect-accent text-nconnect-accent'
+                : 'bg-nconnect-primary/50 border-nconnect-secondary/30 text-nconnect-muted hover:border-nconnect-accent/50'
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Survey Question Renderer
+function SurveyQuestionField({ question, value, answers, onChange }: {
+  question: SurveyQuestion;
+  value: string | string[] | number | null | undefined;
+  answers: SurveyAnswers;
+  onChange: (val: string | string[] | number | null) => void;
+}) {
+  // Check visibility conditions
+  if (question.showWhen) {
+    const depVal = answers[question.showWhen.questionId];
+    if (!depVal || !question.showWhen.values.includes(String(depVal))) return null;
+  }
+  if (question.conditionalOn) {
+    const depVal = answers[question.conditionalOn.questionId];
+    if (depVal !== question.conditionalOn.value) return null;
+  }
+
+  return (
+    <div className="space-y-2">
+      <label className="text-white text-sm font-medium">{question.label}</label>
+      {question.type === 'single_choice' && question.options && (
+        <ChoiceChips options={question.options} selected={String(value || '')} multi={false} onChange={(v) => onChange(v as string)} />
+      )}
+      {question.type === 'multi_choice' && question.options && (
+        <ChoiceChips options={question.options} selected={(value as string[]) || []} multi={true} onChange={(v) => onChange(v as string[])} />
+      )}
+      {question.type === 'star_rating' && (
+        <StarRating rating={Number(value) || 0} onRate={(r) => onChange(r)} />
+      )}
+      {question.type === 'nps' && (
+        <NPSScale value={Number(value) || 0} onChange={(v) => onChange(v)} />
+      )}
+      {(question.type === 'text' || question.type === 'conditional_text') && (
+        <textarea
+          value={String(value || '')}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={question.placeholder}
+          rows={3}
+          maxLength={question.maxLength || 1000}
+          className="w-full bg-nconnect-primary/50 border border-nconnect-secondary/30 rounded-lg px-3 py-2 text-white text-sm placeholder-nconnect-muted/50 focus:border-nconnect-accent focus:ring-1 focus:ring-nconnect-accent transition-colors resize-none"
+        />
+      )}
+    </div>
+  );
+}
+
+// Survey Form Component
+function SurveyForm({ attendeeId, existingSurvey, onSaved }: {
+  attendeeId: string;
+  existingSurvey: SurveyResponse | null;
+  onSaved: (s: SurveyResponse) => void;
+}) {
+  const [answers, setAnswers] = useState<SurveyAnswers>(existingSurvey?.answers || {});
+  const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const updateAnswer = (id: string, val: string | string[] | number | null) => {
+    setAnswers(prev => ({ ...prev, [id]: val }));
+  };
+
+  const handleSubmit = async () => {
+    setIsSaving(true);
+    try {
+      const response = await fetch('/api/survey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attendee_id: attendeeId, answers }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        onSaved(data.data);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (err) {
+      console.error('Failed to save survey:', err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+          <ClipboardList className="w-5 h-5 text-purple-400" />
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold text-white">Dotazník ku konferencii</h2>
+          <p className="text-nconnect-muted text-sm">Pomôžte nám zlepšiť budúce ročníky</p>
+        </div>
+        {saved && (
+          <span className="ml-auto text-sm text-green-400 flex items-center gap-1">
+            <CheckCircle2 className="w-4 h-4" /> Uložené
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        {SURVEY_QUESTIONS.map(q => (
+          <SurveyQuestionField
+            key={q.id}
+            question={q}
+            value={answers[q.id]}
+            answers={answers}
+            onChange={(val) => updateAnswer(q.id, val)}
+          />
+        ))}
+      </div>
+
+      <button
+        onClick={handleSubmit}
+        disabled={isSaving}
+        className="btn-primary w-full mt-6 flex items-center justify-center gap-2"
+      >
+        {isSaving ? (
+          <><Loader2 className="w-4 h-4 animate-spin" />Ukladám...</>
+        ) : saved ? (
+          <><CheckCircle2 className="w-4 h-4" />Dotazník odoslaný</>
+        ) : existingSurvey ? (
+          <><Send className="w-4 h-4" />Aktualizovať dotazník</>
+        ) : (
+          <><Send className="w-4 h-4" />Odoslať dotazník</>
+        )}
+      </button>
+    </div>
+  );
+}
+
 function SessionsContent() {
   const searchParams = useSearchParams();
   const attendeeId = searchParams.get('attendee');
@@ -178,6 +376,7 @@ function SessionsContent() {
   const [registeredIds, setRegisteredIds] = useState<string[]>([]);
   const [originalRegisteredIds, setOriginalRegisteredIds] = useState<string[]>([]);
   const [feedbacks, setFeedbacks] = useState<Record<string, SessionFeedback>>({});
+  const [surveyResponse, setSurveyResponse] = useState<SurveyResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -215,6 +414,13 @@ function SessionsContent() {
             fbMap[fb.session_id] = fb;
           }
           setFeedbacks(fbMap);
+        }
+
+        // Load survey response
+        const surveyRes = await fetch(`/api/survey?attendee=${attendeeId}`);
+        const surveyData = await surveyRes.json();
+        if (surveyData.success && surveyData.data) {
+          setSurveyResponse(surveyData.data);
         }
       }
     } catch (err) {
@@ -526,6 +732,16 @@ function SessionsContent() {
               </div>
             </div>
           ))}
+
+          {feedbackEnabled && attendeeId && (
+            <div className="mt-8">
+              <SurveyForm
+                attendeeId={attendeeId}
+                existingSurvey={surveyResponse}
+                onSaved={(s) => setSurveyResponse(s)}
+              />
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-1">

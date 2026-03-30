@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { SURVEY_QUESTIONS } from '@/lib/survey-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,10 @@ export async function GET(request: Request) {
 
     if (type === 'feedback') {
       return await exportFeedback(supabase);
+    }
+
+    if (type === 'survey') {
+      return await exportSurvey(supabase);
     }
 
     return await exportRegistrations(supabase);
@@ -109,6 +114,45 @@ async function exportFeedback(supabase: ReturnType<typeof createServerClient>) {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="nconnect26-feedback-${new Date().toISOString().split('T')[0]}.csv"`,
+    },
+  });
+}
+
+async function exportSurvey(supabase: ReturnType<typeof createServerClient>) {
+  const { data: surveys, error } = await supabase
+    .from('survey_responses')
+    .select('answers, created_at, attendee:attendees(name, email, company)')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  const questionHeaders = SURVEY_QUESTIONS.map(q => q.label);
+  const headers = ['Meno', 'Email', 'Firma/Škola', ...questionHeaders, 'Dátum vyplnenia'];
+
+  const rows = (surveys || []).map(s => {
+    const attendee = s.attendee as any;
+    const answers = s.answers as any;
+    const questionValues = SURVEY_QUESTIONS.map(q => {
+      const val = answers?.[q.id];
+      if (val === undefined || val === null) return '';
+      if (Array.isArray(val)) return val.join('; ');
+      return String(val);
+    });
+    return [
+      attendee?.name || '',
+      attendee?.email || '',
+      attendee?.company || '',
+      ...questionValues,
+      new Date(s.created_at).toLocaleString('sk-SK'),
+    ].map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
+  });
+
+  const csv = [headers.join(','), ...rows].join('\n');
+
+  return new NextResponse(csv, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="nconnect26-survey-${new Date().toISOString().split('T')[0]}.csv"`,
     },
   });
 }

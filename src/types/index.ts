@@ -54,6 +54,33 @@ export interface SessionFeedback {
   created_at: string;
 }
 
+// Survey types
+export type SurveyQuestionType = 'single_choice' | 'multi_choice' | 'star_rating' | 'nps' | 'text' | 'conditional_text';
+
+export interface SurveyQuestion {
+  id: string;
+  label: string;
+  type: SurveyQuestionType;
+  options?: { value: string; label: string }[];
+  required?: boolean;
+  maxStars?: number;
+  maxScale?: number;
+  placeholder?: string;
+  maxLength?: number;
+  showWhen?: { questionId: string; values: string[] };
+  conditionalOn?: { questionId: string; value: string };
+}
+
+export type SurveyAnswers = Record<string, string | string[] | number | null>;
+
+export interface SurveyResponse {
+  id: string;
+  attendee_id: string;
+  answers: SurveyAnswers;
+  created_at: string;
+  updated_at: string;
+}
+
 // Form types
 export interface RegistrationFormData {
   email: string;

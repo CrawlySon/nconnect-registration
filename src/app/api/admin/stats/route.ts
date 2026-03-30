@@ -81,6 +81,30 @@ export async function GET() {
       }))
       .sort((a, b) => b.avgRating - a.avgRating);
 
+    // Get survey stats
+    const { data: surveyData } = await supabase
+      .from('survey_responses')
+      .select('answers, attendee:attendees(name)')
+      .order('created_at', { ascending: false });
+
+    const surveys = surveyData || [];
+    const totalSurveys = surveys.length;
+
+    // NPS calculation
+    const npsValues = surveys.map(s => (s.answers as any)?.nps).filter((v: any) => typeof v === 'number');
+    const npsPromoters = npsValues.filter((v: number) => v >= 9).length;
+    const npsDetractors = npsValues.filter((v: number) => v <= 6).length;
+    const npsScore = npsValues.length > 0 ? Math.round(((npsPromoters - npsDetractors) / npsValues.length) * 100) : null;
+
+    // Average star ratings from survey
+    const speakerQualityVals = surveys.map(s => (s.answers as any)?.speaker_quality).filter((v: any) => typeof v === 'number');
+    const organizationVals = surveys.map(s => (s.answers as any)?.organization).filter((v: any) => typeof v === 'number');
+    const avgSpeakerQuality = speakerQualityVals.length > 0 ? speakerQualityVals.reduce((a: number, b: number) => a + b, 0) / speakerQualityVals.length : null;
+    const avgOrganization = organizationVals.length > 0 ? organizationVals.reduce((a: number, b: number) => a + b, 0) / organizationVals.length : null;
+
+    // Volunteer interest
+    const volunteerCount = surveys.filter(s => (s.answers as any)?.volunteer === 'ano').length;
+
     return NextResponse.json({
       success: true,
       stats: {
@@ -100,6 +124,13 @@ export async function GET() {
         attendeeName: (f.attendee as any)?.name,
         sessionTitle: (f.session as any)?.title,
       })),
+      surveyStats: {
+        totalSurveys,
+        npsScore,
+        avgSpeakerQuality,
+        avgOrganization,
+        volunteerCount,
+      },
     });
   } catch (error) {
     console.error('Admin stats error:', error);

@@ -177,6 +177,27 @@ CREATE POLICY "Service role can manage feedback" ON session_feedback
     FOR ALL USING (auth.role() = 'service_role');
 
 -- =====================================================
+-- POST-CONFERENCE SURVEY
+-- =====================================================
+-- One survey response per attendee, answers stored as JSONB
+CREATE TABLE IF NOT EXISTS survey_responses (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    attendee_id UUID NOT NULL UNIQUE REFERENCES attendees(id) ON DELETE CASCADE,
+    answers JSONB NOT NULL DEFAULT '{}',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_survey_attendee ON survey_responses(attendee_id);
+
+-- Enable RLS
+ALTER TABLE survey_responses ENABLE ROW LEVEL SECURITY;
+
+-- Service role can manage survey responses
+CREATE POLICY "Service role can manage survey" ON survey_responses
+    FOR ALL USING (auth.role() = 'service_role');
+
+-- =====================================================
 -- HELPFUL VIEWS
 -- =====================================================
 

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import {
   Users, Calendar, BarChart3, Settings,
   Loader2, AlertCircle, ChevronRight,
-  Download, Plus, LogOut, Play, FileSpreadsheet, Mail, Star
+  Download, Plus, LogOut, Play, FileSpreadsheet, Mail, Star, ClipboardList
 } from 'lucide-react';
 
 interface Stats {
@@ -42,12 +42,21 @@ interface RecentFeedback {
   sessionTitle: string;
 }
 
+interface SurveyStats {
+  totalSurveys: number;
+  npsScore: number | null;
+  avgSpeakerQuality: number | null;
+  avgOrganization: number | null;
+  volunteerCount: number;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
   const [recentAttendees, setRecentAttendees] = useState<RecentAttendee[]>([]);
   const [sessionFeedback, setSessionFeedback] = useState<SessionFeedbackStat[]>([]);
   const [recentFeedback, setRecentFeedback] = useState<RecentFeedback[]>([]);
+  const [surveyStats, setSurveyStats] = useState<SurveyStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -67,6 +76,7 @@ export default function AdminDashboard() {
       setRecentAttendees(data.recentAttendees);
       setSessionFeedback(data.sessionFeedbackStats || []);
       setRecentFeedback(data.recentFeedback || []);
+      setSurveyStats(data.surveyStats || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nepodarilo sa načítať dáta');
     } finally {
@@ -242,6 +252,57 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {/* Survey stats */}
+      {(surveyStats?.totalSurveys ?? 0) > 0 && (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-nconnect-surface border border-purple-500/30 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <ClipboardList className="w-6 h-6 text-purple-400" />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white">{surveyStats?.totalSurveys || 0}</p>
+            <p className="text-nconnect-muted text-sm">Vyplnených dotazníkov</p>
+          </div>
+
+          <div className="bg-nconnect-surface border border-purple-500/30 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <span className={`text-xl font-bold ${
+                  (surveyStats?.npsScore ?? 0) > 50 ? 'text-green-400' :
+                  (surveyStats?.npsScore ?? 0) >= 0 ? 'text-yellow-400' : 'text-red-400'
+                }`}>NPS</span>
+              </div>
+            </div>
+            <p className={`text-3xl font-bold ${
+              (surveyStats?.npsScore ?? 0) > 50 ? 'text-green-400' :
+              (surveyStats?.npsScore ?? 0) >= 0 ? 'text-yellow-400' : 'text-red-400'
+            }`}>{surveyStats?.npsScore ?? '-'}</p>
+            <p className="text-nconnect-muted text-sm">Net Promoter Score</p>
+          </div>
+
+          <div className="bg-nconnect-surface border border-purple-500/30 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <span className="text-yellow-400 text-xl">★</span>
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white">{surveyStats?.avgSpeakerQuality?.toFixed(1) ?? '-'}</p>
+            <p className="text-nconnect-muted text-sm">Kvalita speakerov</p>
+          </div>
+
+          <div className="bg-nconnect-surface border border-purple-500/30 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <Users className="w-6 h-6 text-purple-400" />
+              </div>
+            </div>
+            <p className="text-3xl font-bold text-white">{surveyStats?.volunteerCount || 0}</p>
+            <p className="text-nconnect-muted text-sm">Záujem o dobrovoľníctvo</p>
+          </div>
+        </div>
+      )}
+
       {/* Recent feedback */}
       {recentFeedback.length > 0 && (
         <div className="bg-nconnect-surface border border-nconnect-secondary/30 rounded-xl p-6 mb-8">
@@ -356,6 +417,17 @@ export default function AdminDashboard() {
               <div className="flex items-center gap-3">
                 <Star className="w-5 h-5 text-yellow-400" />
                 <span className="text-white">Export hodnotení (CSV)</span>
+              </div>
+              <ChevronRight className="w-5 h-5 text-nconnect-muted" />
+            </button>
+
+            <button
+              onClick={() => window.location.href = '/api/admin/export?type=survey'}
+              className="w-full flex items-center justify-between p-4 bg-nconnect-primary/50 rounded-lg hover:bg-nconnect-primary transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <ClipboardList className="w-5 h-5 text-purple-400" />
+                <span className="text-white">Export dotazníkov (CSV)</span>
               </div>
               <ChevronRight className="w-5 h-5 text-nconnect-muted" />
             </button>
